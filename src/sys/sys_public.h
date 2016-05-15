@@ -137,7 +137,7 @@ char	*Sys_DefaultInstallPath(void);
 char    *Sys_DefaultAppPath(void);
 #endif
 
-char	*Sys_DefaultHomePath(void);
+char const * Sys_DefaultHomePath(void);
 const char *Sys_Dirname( char *path );
 const char *Sys_Basename( char *path );
 

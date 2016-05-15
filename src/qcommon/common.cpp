@@ -62,7 +62,6 @@ cvar_t	*com_bootlogo;
 cvar_t	*cl_paused;
 cvar_t	*sv_paused;
 cvar_t	*com_cameraMode;
-cvar_t  *com_homepath;
 #ifndef _WIN32
 cvar_t	*com_ansiColor = NULL;
 #endif
@@ -1159,8 +1158,6 @@ void Com_Init( char *commandLine ) {
 
 		// done early so bind command exists
 		CL_InitKeyCommands();
-
-		com_homepath = Cvar_Get("com_homepath", "", CVAR_INIT);
 
 		FS_InitFilesystem ();
 
