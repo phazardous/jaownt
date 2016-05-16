@@ -151,8 +151,6 @@ time_t Sys_FileTime( const char *path );
 
 qboolean Sys_LowPhysicalMemory();
 
-void Sys_SetProcessorAffinity( void );
-
 typedef enum graphicsApi_e
 {
 	GRAPHICS_API_GENERIC,

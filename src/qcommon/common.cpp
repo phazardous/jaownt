@@ -2026,8 +2026,6 @@ GENERAL PURPOSE THREAD POOL
 */
 
 #include <atomic>
-#include <condition_variable>
-#include <mutex>
 #include <thread>
 #include <future>
 
@@ -2038,22 +2036,20 @@ typedef struct GPTP_task_info_s {
 } GPTP_task_info_t;
 
 static std::atomic_bool GPTP_run_sem {true};
-static std::mutex GPTP_mutex;
-static std::condition_variable GPTP_cv;
 
-static GPTP_task_info_t * GPTP_task;
+static std::atomic<GPTP_task_info_t *> GPTP_task;
 
 static void GPTP_ThreadRun() {
 
-	static GPTP_task_info_t * this_task;
+	GPTP_task_info_t * this_task = nullptr;
 	
 	while (GPTP_run_sem) {
-		std::unique_lock<std::mutex> lock{GPTP_mutex};
-		GPTP_cv.wait(lock);
-		if (!GPTP_run_sem) return;
-		this_task = GPTP_task;
-		lock.unlock();
-		this_task->res.set_value(this_task->func(this_task->arg));
+		this_task = GPTP_task.load();
+		if (!this_task || !GPTP_task.compare_exchange_strong(this_task, nullptr)) {
+			std::this_thread::sleep_for(std::chrono::microseconds(50));
+		} else {
+			this_task->res.set_value(this_task->func(this_task->arg));
+		}
 	}
 }
 
@@ -2070,7 +2066,6 @@ void GPTP_Init() {
 
 void GPTP_Shutdown() {
 	GPTP_run_sem.store(false);
-	GPTP_cv.notify_all();
 	for (unsigned int i = 0; i < GPTP_thread_num; i++) {
 		if (GPTP_threads[i]->joinable()) GPTP_threads[i]->join();
 		delete GPTP_threads[i];
@@ -2078,10 +2073,17 @@ void GPTP_Shutdown() {
 	delete [] GPTP_threads;
 }
 
+unsigned int GPTP_GetThreadCount() {
+	return GPTP_thread_num;
+}
+
 void * GPTP_TaskBegin(void *(*func)(void *), void * arg) {
 	GPTP_task_info_t * task = new GPTP_task_info_t {func, arg, {}};
-	GPTP_task = task;
-	GPTP_cv.notify_one();
+	GPTP_task_info_t * scratch = nullptr;
+	while (!GPTP_task.compare_exchange_weak(scratch, task)) {
+		scratch = nullptr;
+		std::this_thread::yield();
+	}
 	return reinterpret_cast<void *>(task);
 }
 

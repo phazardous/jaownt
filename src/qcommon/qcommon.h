@@ -1068,6 +1068,7 @@ GENERAL PURPOSE THREAD POOL
 void GPTP_Init();
 void GPTP_Shutdown();
 
+unsigned int GPTP_GetThreadCount();
+
 void * GPTP_TaskBegin(void *(*func)(void *), void * arg);
-qboolean GPTP_TaskCheck(void *);
 void * GPTP_TaskCollect(void *);
