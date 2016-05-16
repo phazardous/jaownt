@@ -150,6 +150,9 @@ short ShortSwap( short l );
 int LongSwap( int l );
 float FloatSwap( const float *f );
 
+#ifndef __cplusplus
+#define thread_local _Thread_local
+#endif
 
 #include "qcommon/q_platform.h"
 

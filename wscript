@@ -6,8 +6,8 @@ import os, sys
 top = '.'
 out = 'build'
 
-g_cflags = ["-std=gnu11"]
-g_cxxflags = ["-std=gnu++11"]
+g_cflags = ["-std=gnu11", "-pthread"]
+g_cxxflags = ["-std=gnu++11", "-pthread"]
 def btype_cflags(ctx):
 	return {
 		"DEBUG"   : g_cflags + ["-Og", "-ggdb3", "-march=core2", "-mtune=native"],
@@ -35,6 +35,7 @@ def configure(ctx):
 	ctx.check(features='c cprogram', lib='jpeg', uselib_store='JPEG')
 	ctx.check(features='c cprogram', lib='png', uselib_store='PNG')
 	ctx.check(features='c cprogram', lib='GL', uselib_store='GL')
+	ctx.check(features='c cprogram', lib='pthread', uselib_store='PTHREAD')
 	ctx.check_cfg(path='sdl2-config', args='--cflags --libs', package='', uselib_store='SDL')
 	
 	btup = ctx.options.build_type.upper()
@@ -108,7 +109,7 @@ def build(bld):
 		target = "jaownt",
 		includes = ["src"],
 		source = clsv_common_files + client_files,
-		uselib = ['SDL', 'ZLIB', 'DL'],
+		uselib = ['SDL', 'ZLIB', 'DL', 'PTHREAD'],
 		use = ['minizip', 'botlib'],
 		install_path = os.path.join(top, "install")
 	)
@@ -126,11 +127,10 @@ def build(bld):
 		includes = ["src", 'src/rd-vanilla'],
 		source = clsv_common_files + server_files,
 		defines = ['_CONSOLE', 'DEDICATED'],
-		uselib = ['ZLIB', 'DL'],
+		uselib = ['ZLIB', 'DL', 'PTHREAD'],
 		use = ['minizip', 'botlib'],
 		install_path = os.path.join(top, "install")
 	)
-	
 	### GAME/CGAME/UI ###
 	
 	common_files = bld.path.ant_glob('src/qcommon/*.c')
@@ -145,6 +145,7 @@ def build(bld):
 		target = "jampgame",
 		includes = ["src"],
 		source = game_files + common_files,
+		uselib = ['PTHREAD'],
 		defines = ['_GAME'],
 		install_path = os.path.join(top, "install", "base")
 	)
@@ -167,6 +168,7 @@ def build(bld):
 		target = "cgame",
 		includes = ["src"],
 		source = cgame_files + common_files,
+		uselib = ['PTHREAD'],
 		defines = ['_CGAME'],
 		install_path = os.path.join(top, "install", "base")
 	)
@@ -188,6 +190,7 @@ def build(bld):
 		target = "ui",
 		includes = ["src"],
 		source = ui_files + common_files,
+		uselib = ['PTHREAD'],
 		defines = ['UI_BUILD'],
 		install_path = os.path.join(top, "install", "base")
 	)
@@ -209,7 +212,7 @@ def build(bld):
 		target = "rd-vanilla",
 		includes = ["src", "src/rd-vanilla"],
 		source = rdvan_files,
-		uselib = ['JPEG', 'PNG', 'GL'],
+		uselib = ['JPEG', 'PNG', 'GL', 'PTHREAD'],
 		install_path = os.path.join(top, "install")
 	)
 	

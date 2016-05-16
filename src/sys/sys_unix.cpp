@@ -448,10 +448,10 @@ Sys_DefaultHomePath
 ==================
 */
 
-char const * Sys_DefaultHomePath(void) {
-
+char const * Sys_DefaultHomePath(void)
+{
 	if ( !homePath[0] ) {
-		Com_sprintf( homePath, sizeof( homePath ), "%s%cvolatile", Sys_Cwd(), PATH_SEP );
+		Com_sprintf( homePath, sizeof( homePath ), "%s%cvolatile", Sys_Cwd(), PATH_SEP );	
 	}
 
 	return homePath;

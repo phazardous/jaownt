@@ -1126,9 +1126,11 @@ void Com_Init( char *commandLine ) {
 
 	try
 	{
+		GPTP_Init();
+		
 		// initialize the weak pseudo-random number generator for use later.
 		Com_InitRand();
-
+		
 		// do this before anything else decides to push events
 		Com_InitPushEvent();
 
@@ -1655,6 +1657,8 @@ void Com_Shutdown (void)
 	}
 
 	MSG_shutdownHuffman();
+	
+	GPTP_Shutdown();
 /*
 	// Only used for testing changes to huffman frequency table when tuning.
 	{
@@ -2011,4 +2015,79 @@ uint32_t ConvertUTF8ToUTF32( char *utf8CurrentChar, char **utf8NextChar )
 	*utf8NextChar = c;
 
 	return utf32;
+}
+
+/*
+==============================================================
+
+GENERAL PURPOSE THREAD POOL
+
+==============================================================
+*/
+
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+#include <future>
+
+typedef struct GPTP_task_info_s {
+	void *(*func)(void *);
+	void * arg;
+	std::promise<void *> res;
+} GPTP_task_info_t;
+
+static std::atomic_bool GPTP_run_sem {true};
+static std::mutex GPTP_mutex;
+static std::condition_variable GPTP_cv;
+
+static GPTP_task_info_t * GPTP_task;
+
+static void GPTP_ThreadRun() {
+
+	static GPTP_task_info_t * this_task;
+	
+	while (GPTP_run_sem) {
+		std::unique_lock<std::mutex> lock{GPTP_mutex};
+		GPTP_cv.wait(lock);
+		if (!GPTP_run_sem) return;
+		this_task = GPTP_task;
+		lock.unlock();
+		this_task->res.set_value(this_task->func(this_task->arg));
+	}
+}
+
+static unsigned int GPTP_thread_num;
+static std::thread * * GPTP_threads = nullptr;
+
+void GPTP_Init() {
+	GPTP_thread_num = std::thread::hardware_concurrency();
+	GPTP_threads = new std::thread * [GPTP_thread_num] {};
+	for (unsigned int i = 0; i < GPTP_thread_num; i++) {
+		GPTP_threads[i] = new std::thread(GPTP_ThreadRun);
+	}
+}
+
+void GPTP_Shutdown() {
+	GPTP_run_sem.store(false);
+	GPTP_cv.notify_all();
+	for (unsigned int i = 0; i < GPTP_thread_num; i++) {
+		if (GPTP_threads[i]->joinable()) GPTP_threads[i]->join();
+		delete GPTP_threads[i];
+	}
+	delete [] GPTP_threads;
+}
+
+void * GPTP_TaskBegin(void *(*func)(void *), void * arg) {
+	GPTP_task_info_t * task = new GPTP_task_info_t {func, arg, {}};
+	GPTP_task = task;
+	GPTP_cv.notify_one();
+	return reinterpret_cast<void *>(task);
+}
+
+void * GPTP_TaskCollect(void * tg) {
+	GPTP_task_info_t * task = reinterpret_cast<GPTP_task_info_t *>(tg);
+	void * res = task->res.get_future().get();
+	delete task;
+	return res;
 }
