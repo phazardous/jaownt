@@ -2026,6 +2026,8 @@ GENERAL PURPOSE THREAD POOL
 */
 
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
 #include <thread>
 #include <future>
 
@@ -2036,6 +2038,8 @@ typedef struct GPTP_task_info_s {
 } GPTP_task_info_t;
 
 static std::atomic_bool GPTP_run_sem {true};
+static std::mutex GPTP_mutex;
+static std::condition_variable GPTP_cv;
 
 static std::atomic<GPTP_task_info_t *> GPTP_task;
 
@@ -2046,7 +2050,8 @@ static void GPTP_ThreadRun() {
 	while (GPTP_run_sem) {
 		this_task = GPTP_task.load();
 		if (!this_task || !GPTP_task.compare_exchange_strong(this_task, nullptr)) {
-			std::this_thread::sleep_for(std::chrono::microseconds(50));
+			std::unique_lock<std::mutex> lock {GPTP_mutex};
+			GPTP_cv.wait_for(lock, std::chrono::milliseconds(5));
 		} else {
 			this_task->res.set_value(this_task->func(this_task->arg));
 		}
@@ -2084,6 +2089,7 @@ void * GPTP_TaskBegin(void *(*func)(void *), void * arg) {
 		scratch = nullptr;
 		std::this_thread::yield();
 	}
+	GPTP_cv.notify_all();
 	return reinterpret_cast<void *>(task);
 }
 
