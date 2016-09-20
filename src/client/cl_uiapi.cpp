@@ -41,21 +41,12 @@ static vm_t *uivm; // ui vm, valid for legacy and new api
 //
 
 void UIVM_Init( qboolean inGameLoad ) {
-	if ( uivm->isLegacy ) {
-		VM_Call( uivm, UI_INIT, inGameLoad );
-		return;
-	}
 	VMSwap v( uivm );
 
 	uie->Init( inGameLoad );
 }
 
 void UIVM_Shutdown( void ) {
-	if ( uivm->isLegacy ) {
-		VM_Call( uivm, UI_SHUTDOWN );
-		VM_Call( uivm, UI_MENU_RESET );
-		return;
-	}
 	VMSwap v( uivm );
 
 	uie->Shutdown();
@@ -63,67 +54,41 @@ void UIVM_Shutdown( void ) {
 }
 
 void UIVM_KeyEvent( int key, qboolean down ) {
-	if ( uivm->isLegacy ) {
-		VM_Call( uivm, UI_KEY_EVENT, key, down );
-		return;
-	}
 	VMSwap v( uivm );
 
 	uie->KeyEvent( key, down );
 }
 
 void UIVM_MouseEvent( int dx, int dy ) {
-	if ( uivm->isLegacy ) {
-		VM_Call( uivm, UI_MOUSE_EVENT, dx, dy );
-		return;
-	}
 	VMSwap v( uivm );
 
 	uie->MouseEvent( dx, dy );
 }
 
 void UIVM_Refresh( int realtime ) {
-	if ( uivm->isLegacy ) {
-		VM_Call( uivm, UI_REFRESH, realtime );
-		return;
-	}
 	VMSwap v( uivm );
 
 	uie->Refresh( realtime );
 }
 
 qboolean UIVM_IsFullscreen( void ) {
-	if ( uivm->isLegacy ) {
-		return (qboolean)VM_Call( uivm, UI_IS_FULLSCREEN );
-	}
 	VMSwap v( uivm );
 
 	return uie->IsFullscreen();
 }
 
 void UIVM_SetActiveMenu( uiMenuCommand_t menu ) {
-	if ( uivm->isLegacy ) {
-		VM_Call( uivm, UI_SET_ACTIVE_MENU, menu );
-		return;
-	}
 	VMSwap v( uivm );
 
 	uie->SetActiveMenu( menu );
 }
 
 qboolean UIVM_ConsoleCommand( int realTime ) {
-	if ( uivm->isLegacy ) {
-		return (qboolean)VM_Call( uivm, UI_CONSOLE_COMMAND, realTime );
-	}
 	VMSwap v( uivm );
 
 	return uie->ConsoleCommand( realTime );
 }
 void UIVM_DrawConnectScreen( qboolean overlay ) {
-	if ( uivm->isLegacy ) {
-		VM_Call( uivm, UI_DRAW_CONNECT_SCREEN, overlay );
-		return;
-	}
 	VMSwap v( uivm );
 
 	uie->DrawConnectScreen( overlay );
@@ -1057,7 +1022,7 @@ void CL_BindUI( void ) {
 	memset( &uii, 0, sizeof( uii ) );
 
 	uivm = VM_Create( VM_UI );
-	if ( uivm && !uivm->isLegacy ) {
+	if ( uivm ) {
 		uii.Print								= Com_Printf;
 		uii.Error								= Com_Error;
 		uii.Milliseconds						= CL_Milliseconds;
@@ -1218,12 +1183,7 @@ void CL_BindUI( void ) {
 		return;
 	}
 
-	// fall back to legacy syscall/vm_call api
-	uivm = VM_CreateLegacy( VM_UI, CL_UISystemCalls );
-	if ( !uivm ) {
-		cls.uiStarted = qfalse;
-		Com_Error( ERR_DROP, "VM_CreateLegacy on ui failed" );
-	}
+	Com_Error( ERR_DROP, "CL_BindUI failed" );
 }
 
 void CL_UnbindUI( void ) {

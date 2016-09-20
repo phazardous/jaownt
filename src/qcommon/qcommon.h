@@ -275,16 +275,10 @@ typedef struct vm_s {
 	vmSlots_t	slot; // VM_GAME, VM_CGAME, VM_UI
     char		name[MAX_QPATH];
 	void		*dllHandle;
-	qboolean	isLegacy; // uses the legacy syscall/vm_call api, is set by VM_CreateLegacy
 
 	// fill the import/export tables
 	void *		(*GetModuleAPI)( int apiVersion, ... );
 
-	// legacy stuff
-	struct {
-		VMMainProc* main; // module vmMain
-		intptr_t	(QDECL *syscall)( intptr_t *parms );	// engine syscall handler
-	} legacy;
 } vm_t;
 
 extern vm_t *currentVM;
@@ -322,7 +316,6 @@ typedef enum {
 } sharedTraps_t;
 
 void			VM_Init( void );
-vm_t			*VM_CreateLegacy( vmSlots_t vmSlot, intptr_t (*systemCalls)(intptr_t *) );
 vm_t			*VM_Create( vmSlots_t vmSlot );
 void			 VM_Free( vm_t *vm );
 void			 VM_Clear(void);
