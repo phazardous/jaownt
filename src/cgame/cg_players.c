@@ -5266,6 +5266,9 @@ static void CG_RGBForSaberColor( saber_colors_t color, vec3_t rgb )
 		case SABER_PURPLE:
 			VectorSet( rgb, 0.9f, 0.2f, 1.0f );
 			break;
+		case SABER_BLACK:
+			VectorSet( rgb, 0.0f, 0.0f, 0.0f );
+			break;
 		default:
 			break;
 	}
@@ -5400,6 +5403,10 @@ void CG_DoSaber( vec3_t origin, vec3_t dir, float length, float lengthMax, float
 		case SABER_PURPLE:
 			glow = cgs.media.purpleSaberGlowShader;
 			blade = cgs.media.purpleSaberCoreShader;
+			break;
+		case SABER_BLACK:
+			glow = cgs.media.blackSaberGlowShader;
+			blade = cgs.media.blackSaberCoreShader;
 			break;
 		default:
 			glow = cgs.media.blueSaberGlowShader;
@@ -6389,6 +6396,9 @@ CheckTrail:
 						case SABER_PURPLE:
 							VectorSet( rgb1, 220.0f, 0.0f, 255.0f );
 							break;
+						case SABER_BLACK:
+							VectorSet( rgb1, 0.0f, 0.0f, 0.0f );
+							break;
 						default:
 							VectorSet( rgb1, 0.0f, 64.0f, 255.0f );
 							break;
@@ -6423,13 +6433,21 @@ CheckTrail:
 							if ( (!WP_SaberBladeUseSecondBladeStyle( &client->saber[saberNum], bladeNum ) && client->saber[saberNum].trailStyle == 1 )
 								|| ( WP_SaberBladeUseSecondBladeStyle( &client->saber[saberNum], bladeNum ) && client->saber[saberNum].trailStyle2 == 1 ) )
 							{//motion trail
-								fx.mShader = cgs.media.swordTrailShader;
+								if (scolor == SABER_BLACK) {
+									fx.mShader = cgs.media.swordTrailShader_black;
+								} else {
+									fx.mShader = cgs.media.swordTrailShader;
+								}
 								VectorSet( rgb1, 32.0f, 32.0f, 32.0f ); // make the sith sword trail pretty faint
 								trailDur *= 2.0f; // stay around twice as long?
 							}
 							else
 							{
-								fx.mShader = cgs.media.saberBlurShader;
+								if (scolor == SABER_BLACK) {
+									fx.mShader = cgs.media.saberBlurShader_black;
+								} else {
+									fx.mShader = cgs.media.saberBlurShader;
+								}
 							}
 							fx.mKillTime = trailDur;
 							fx.mSetFlags = FX_USE_ALPHA;

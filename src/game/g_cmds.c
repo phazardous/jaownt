@@ -3344,6 +3344,17 @@ void Cmd_AddBot_f( gentity_t *ent ) {
 	trap->SendServerCommand( ent-g_entities, va( "print \"%s.\n\"", G_GetStringEdString( "MP_SVGAME", "ONLY_ADD_BOTS_AS_SERVER" ) ) );
 }
 
+static void Cmd_UpdateMinigame_f( gentity_t * ent ) {
+	if (trap->Argc() <= 1) {
+		trap->SendServerCommand( ent-g_entities, "print \"Usage: updminigame <minigame index>\n\"" );
+		return;
+	}
+	char sarg[MAX_STRING_CHARS];
+	trap->Argv( 1, sarg, sizeof( sarg ) );
+	int minigame_index = atoi( sarg );
+	trap->UpdateMinigame(minigame_index);
+}
+
 /*
 =================
 ClientCommand
@@ -3401,6 +3412,7 @@ command_t commands[] = {
 	{ "tell",				Cmd_Tell_f,					0 },
 	{ "thedestroyer",		Cmd_TheDestroyer_f,			CMD_CHEAT|CMD_ALIVE|CMD_NOINTERMISSION },
 	{ "t_use",				Cmd_TargetUse_f,			CMD_CHEAT|CMD_ALIVE },
+	{ "updminigame",		Cmd_UpdateMinigame_f,		CMD_NOINTERMISSION },
 	{ "voice_cmd",			Cmd_VoiceCommand_f,			CMD_NOINTERMISSION },
 	{ "vote",				Cmd_Vote_f,					CMD_NOINTERMISSION },
 	{ "where",				Cmd_Where_f,				CMD_NOINTERMISSION },

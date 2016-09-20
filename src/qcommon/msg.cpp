@@ -1844,6 +1844,8 @@ netField_t	playerStateFields[] =
 #endif//_OPTIMIZED_VEHICLE_NETWORKING
 //=====_OPTIMIZED_VEHICLE_NETWORKING=======================================================================
 
+
+
 typedef struct bitStorage_s bitStorage_t;
 
 struct bitStorage_s
@@ -2502,6 +2504,13 @@ void MSG_ReadDeltaPlayerstate (msg_t *msg, playerState_t *from, playerState_t *t
 	}
 #endif
 }
+
+#define	MGNET(x) #x,offsetof(minigameState_t, x)
+
+netField_t	minigameStateFields[] = {
+	{ MGNET(active), 1 },
+	{ MGNET(type), MAX_MINIGAME_TYPE_SIZE * 8 },
+};
 
 /*
 // New data gathered to tune Q3 to JK2MP. Takes longer to crunch and gain was minimal.

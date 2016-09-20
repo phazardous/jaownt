@@ -429,7 +429,7 @@ typedef enum cgameImportLegacy_e {
 	CG_G2_CLEANENTATTACHMENTS,
 	CG_G2_OVERRIDESERVER,
 	CG_G2_GETSURFACENAME,
-	CG_SET_SHARED_BUFFER,
+	CG_REGISTER_CG,
 	CG_CM_REGISTER_TERRAIN,
 	CG_RMG_INIT,
 	CG_RE_INIT_RENDERER_TERRAIN,
@@ -479,7 +479,7 @@ typedef struct cgameImport_s {
 	void			(*Error)								( int level, const char *error, ... );
 	void			(*SnapVector)							( float *v );
 	int				(*MemoryRemaining)						( void );
-	void			(*RegisterSharedMemory)					( char *memory );
+	void			(*RegisterCG)							( char *memory, minigameState_t * minigameStates );
 	void			(*TrueMalloc)							( void **ptr, int size );
 	void			(*TrueFree)								( void **ptr );
 

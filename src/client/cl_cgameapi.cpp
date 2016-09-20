@@ -331,8 +331,9 @@ static void CL_GetGameState( gameState_t *gs ) {
 	*gs = cl.gameState;
 }
 
-static void RegisterSharedMemory( char *memory ) {
+static void RegisterCG( char *memory, minigameState_t * minigameStates ) {
 	cl.mSharedMemory = memory;
+	cl.minigameStates = minigameStates;
 }
 
 static int CL_Milliseconds( void ) {
@@ -1659,8 +1660,8 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 	case CG_SP_GETSTRINGTEXTSTRING:
 		return CL_SE_GetStringTextString( (const char *)VMA(1), (char *)VMA(2), args[3] );
 
-	case CG_SET_SHARED_BUFFER:
-		RegisterSharedMemory( (char *)VMA(1) );
+	case CG_REGISTER_CG:
+		RegisterCG( (char *)VMA(1), (minigameState_t *)VMA(2) );
 		return 0;
 
 	case CG_CM_REGISTER_TERRAIN:
@@ -1708,7 +1709,7 @@ void CL_BindCGame( void ) {
 		cgi.Error								= Com_Error;
 		cgi.SnapVector							= Sys_SnapVector;
 		cgi.MemoryRemaining						= Hunk_MemoryRemaining;
-		cgi.RegisterSharedMemory				= RegisterSharedMemory;
+		cgi.RegisterCG							= RegisterCG;
 		cgi.TrueMalloc							= VM_Shifted_Alloc;
 		cgi.TrueFree							= VM_Shifted_Free;
 		cgi.Milliseconds						= CL_Milliseconds;

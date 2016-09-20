@@ -718,8 +718,12 @@ static void CG_RegisterSounds( void ) {
 	cgs.media.blueSaberCoreShader		= trap->R_RegisterShader( "gfx/effects/sabers/blue_line" );
 	cgs.media.purpleSaberGlowShader		= trap->R_RegisterShader( "gfx/effects/sabers/purple_glow" );
 	cgs.media.purpleSaberCoreShader		= trap->R_RegisterShader( "gfx/effects/sabers/purple_line" );
+	cgs.media.blackSaberGlowShader		= trap->R_RegisterShader( "gfx/effects/sabers/black_glow" );
+	cgs.media.blackSaberCoreShader		= trap->R_RegisterShader( "gfx/effects/sabers/black_line" );
 	cgs.media.saberBlurShader			= trap->R_RegisterShader( "gfx/effects/sabers/saberBlur" );
 	cgs.media.swordTrailShader			= trap->R_RegisterShader( "gfx/effects/sabers/swordTrail" );
+	cgs.media.saberBlurShader_black		= trap->R_RegisterShader( "gfx/effects/sabers/saberBlur_black" );
+	cgs.media.swordTrailShader_black	= trap->R_RegisterShader( "gfx/effects/sabers/swordTrail_black" );
 
 	cgs.media.forceCoronaShader			= trap->R_RegisterShaderNoMip( "gfx/hud/force_swirl" );
 
@@ -2482,10 +2486,12 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum )
 	char buf[64];
 	const char	*s;
 	int i = 0;
+	
+	BG_InitMinigames();
 
 	BG_InitAnimsets(); //clear it out
 
-	trap->RegisterSharedMemory( cg.sharedBuffer.raw );
+	trap->RegisterCG( cg.sharedBuffer.raw, bg_minigames );
 
 	//Load external vehicle data
 	BG_VehicleLoadParms();
@@ -2770,6 +2776,8 @@ Called before every level change or subsystem restart
 */
 void CG_Shutdown( void )
 {
+	BG_ClearMinigames();
+	
 	BG_ClearAnimsets(); //free all dynamic allocations made through the engine
 
     CG_DestroyAllGhoul2();

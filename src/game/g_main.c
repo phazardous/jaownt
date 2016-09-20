@@ -181,6 +181,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	//Clean up any client-server ghoul2 instance attachments that may still exist exe-side
 	trap->G2API_CleanEntAttachments();
+	
+	BG_InitMinigames();
 
 	BG_InitAnimsets(); //clear it out
 
@@ -280,7 +282,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	// let the server system know where the entites are
 	trap->LocateGameData( (sharedEntity_t *)level.gentities, level.num_entities, sizeof( gentity_t ),
-		&level.clients[0].ps, sizeof( level.clients[0] ) );
+		&level.clients[0].ps, sizeof( level.clients[0] ), bg_minigames );
 
 	//Load sabers.cfg data
 	WP_SaberLoadParms();
@@ -439,6 +441,8 @@ void G_ShutdownGame( int restart ) {
 //	trap->Print ("==== ShutdownGame ====\n");
 
 	G_CleanAllFakeClients(); //get rid of dynamically allocated fake client structs.
+	
+	BG_ClearMinigames();
 
 	BG_ClearAnimsets(); //free all dynamic allocations made through the engine
 

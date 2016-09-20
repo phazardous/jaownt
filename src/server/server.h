@@ -75,6 +75,8 @@ typedef struct server_s {
 
 	playerState_t	*gameClients;
 	int				gameClientSize;		// will be > sizeof(playerState_t) due to game private data
+	
+	minigameState_t *minigamestates;
 
 	int				restartTime;
 	int				time;
@@ -477,3 +479,6 @@ void SV_ClipToEntity( trace_t *trace, const vec3_t start, const vec3_t mins, con
 void SV_Netchan_Transmit( client_t *client, msg_t *msg);	//int length, const byte *data );
 void SV_Netchan_TransmitNextFragment( netchan_t *chan );
 qboolean SV_Netchan_Process( client_t *client, msg_t *msg );
+
+
+void SV_UpdateMinigameState( int minigame_index );

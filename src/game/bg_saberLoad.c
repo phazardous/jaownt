@@ -178,8 +178,18 @@ saber_colors_t TranslateSaberColor( const char *name ) {
 		return SABER_BLUE;
 	if ( !Q_stricmp( name, "purple" ) )
 		return SABER_PURPLE;
+	if ( !Q_stricmp( name, "black" ) )
+		return SABER_BLACK;
 	if ( !Q_stricmp( name, "random" ) )
+		return (saber_colors_t)Q_irand( SABER_RED, SABER_BLACK );
+	if ( !Q_stricmp( name, "hot" ) )
+		return (saber_colors_t)Q_irand( SABER_RED, SABER_YELLOW );
+	if ( !Q_stricmp( name, "cool" ) )
+		return (saber_colors_t)Q_irand( SABER_GREEN, SABER_PURPLE );
+	if ( !Q_stricmp( name, "jedi" ) )
 		return (saber_colors_t)Q_irand( SABER_ORANGE, SABER_PURPLE );
+	if ( !Q_stricmp( name, "evil" ) )
+		return (saber_colors_t)Q_irand( 0, 1 ) ? SABER_RED : SABER_BLACK;
 
 	return SABER_BLUE;
 }
@@ -191,6 +201,7 @@ const char *SaberColorToString( saber_colors_t color ) {
 	if ( color == SABER_GREEN )		return "green";
 	if ( color == SABER_BLUE )		return "blue";
 	if ( color == SABER_PURPLE )	return "purple";
+	if ( color == SABER_BLACK )		return "black";
 
 	return NULL;
 }

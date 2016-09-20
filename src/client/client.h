@@ -152,6 +152,8 @@ typedef struct clientActive_s {
 	entityState_t	parseEntities[MAX_PARSE_ENTITIES];
 
 	char			*mSharedMemory;
+	
+	minigameState_t *minigameStates;
 } clientActive_t;
 
 extern	clientActive_t		cl;

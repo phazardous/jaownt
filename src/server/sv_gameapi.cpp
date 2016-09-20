@@ -426,13 +426,15 @@ int Q3_GetVectorVariable( const char *name, vec3_t value );
 void SV_BotWaypointReception( int wpnum, wpobject_t **wps );
 void SV_BotCalculatePaths( int rmg );
 
-static void SV_LocateGameData( sharedEntity_t *gEnts, int numGEntities, int sizeofGEntity_t, playerState_t *clients, int sizeofGameClient ) {
+static void SV_LocateGameData( sharedEntity_t *gEnts, int numGEntities, int sizeofGEntity_t, playerState_t *clients, int sizeofGameClient, minigameState_t * minigames ) {
 	sv.gentities = gEnts;
 	sv.gentitySize = sizeofGEntity_t;
 	sv.num_entities = numGEntities;
 
 	sv.gameClients = clients;
 	sv.gameClientSize = sizeofGameClient;
+	
+	sv.minigamestates = minigames;
 }
 
 static void SV_GameDropClient( int clientNum, const char *reason ) {
@@ -1849,7 +1851,7 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return FS_GetFileList( (const char *)VMA(1), (const char *)VMA(2), (char *)VMA(3), args[4] );
 
 	case G_LOCATE_GAME_DATA:
-		SV_LocateGameData( (sharedEntity_t *)VMA(1), args[2], args[3], (struct playerState_s *)VMA(4), args[5] );
+		SV_LocateGameData( (sharedEntity_t *)VMA(1), args[2], args[3], (struct playerState_s *)VMA(4), args[5], (minigameState_t *)args[6] );
 		return 0;
 
 	case G_DROP_CLIENT:
@@ -1972,6 +1974,9 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return Com_RealTime( (struct qtime_s *)VMA(1) );
 	case G_SNAPVECTOR:
 		Sys_SnapVector( (float *)VMA(1) );
+		return 0;
+	case G_UPDATEMINIGAME:
+		SV_UpdateMinigameState(*(int *)VMA(1));
 		return 0;
 
 	case SP_GETSTRINGTEXTSTRING:
@@ -2898,6 +2903,7 @@ void SV_BindGame( void ) {
 		gi.TrueMalloc							= VM_Shifted_Alloc;
 		gi.TrueFree								= VM_Shifted_Free;
 		gi.SnapVector							= Sys_SnapVector;
+		gi.UpdateMinigame						= SV_UpdateMinigameState;
 		gi.Cvar_Register						= Cvar_Register;
 		gi.Cvar_Set								= GVM_Cvar_Set;
 		gi.Cvar_Update							= Cvar_Update;

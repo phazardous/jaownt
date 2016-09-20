@@ -425,6 +425,7 @@ typedef enum gameImportLegacy_e {
 	G_DEBUG_POLYGON_DELETE,
 	G_REAL_TIME,
 	G_SNAPVECTOR,
+	G_UPDATEMINIGAME,
 	G_TRACECAPSULE,
 	G_ENTITY_CONTACTCAPSULE,
 	SP_GETSTRINGTEXTSTRING,
@@ -769,6 +770,8 @@ typedef struct gameImport_s {
 	void		(*TrueMalloc)							( void **ptr, int size );
 	void		(*TrueFree)								( void **ptr );
 	void		(*SnapVector)							( float *v );
+	void		(*UpdateMinigame)						( int minigame_index );
+
 
 	// cvar
 	void		(*Cvar_Register)						( vmCvar_t *vmCvar, const char *varName, const char *defaultValue, uint32_t flags );
@@ -804,7 +807,7 @@ typedef struct gameImport_s {
 	qboolean	(*InPVS)								( const vec3_t p1, const vec3_t p2 );
 	qboolean	(*InPVSIgnorePortals)					( const vec3_t p1, const vec3_t p2 );
 	void		(*LinkEntity)							( sharedEntity_t *ent );
-	void		(*LocateGameData)						( sharedEntity_t *gEnts, int numGEntities, int sizeofGEntity_t, playerState_t *clients, int sizeofGClient );
+	void		(*LocateGameData)						( sharedEntity_t *gEnts, int numGEntities, int sizeofGEntity_t, playerState_t *clients, int sizeofGClient, minigameState_t * minigames );
 	int			(*PointContents)						( const vec3_t point, int passEntityNum );
 	void		(*SendConsoleCommand)					( int exec_when, const char *text );
 	void		(*SendServerCommand)					( int clientNum, const char *text );

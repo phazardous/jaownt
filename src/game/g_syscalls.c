@@ -92,8 +92,8 @@ void trap_FS_FCloseFile( fileHandle_t f ) {
 void trap_SendConsoleCommand( int exec_when, const char *text ) {
 	Q_syscall( G_SEND_CONSOLE_COMMAND, exec_when, text );
 }
-void trap_LocateGameData( sharedEntity_t *gEnts, int numGEntities, int sizeofGEntity_t, playerState_t *clients, int sizeofGClient ) {
-	Q_syscall( G_LOCATE_GAME_DATA, gEnts, numGEntities, sizeofGEntity_t, clients, sizeofGClient );
+void trap_LocateGameData( sharedEntity_t *gEnts, int numGEntities, int sizeofGEntity_t, playerState_t *clients, int sizeofGClient, minigameState_t * mgs ) {
+	Q_syscall( G_LOCATE_GAME_DATA, gEnts, numGEntities, sizeofGEntity_t, clients, sizeofGClient, mgs );
 }
 void trap_DropClient( int clientNum, const char *reason ) {
 	Q_syscall( G_DROP_CLIENT, clientNum, reason );
@@ -192,6 +192,9 @@ int trap_RealTime( qtime_t *qtime ) {
 }
 void trap_SnapVector( float *v ) {
 	Q_syscall( G_SNAPVECTOR, v );
+}
+void trap_UpdateMinigame( int index ) {
+	Q_syscall( G_UPDATEMINIGAME, index );
 }
 void trap_TraceCapsule( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentmask ) {
 	Q_syscall( G_TRACECAPSULE, results, start, mins, maxs, end, passEntityNum, contentmask, 0, 10 );
@@ -1055,6 +1058,7 @@ static void TranslateSyscalls( void ) {
 	trap->TrueMalloc						= trap_TrueMalloc;
 	trap->TrueFree							= trap_TrueFree;
 	trap->SnapVector						= trap_SnapVector;
+	trap->UpdateMinigame					= trap_UpdateMinigame;
 	trap->Cvar_Register						= trap_Cvar_Register;
 	trap->Cvar_Set							= trap_Cvar_Set;
 	trap->Cvar_Update						= trap_Cvar_Update;

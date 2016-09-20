@@ -34,6 +34,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #endif
 
 XCVAR_DEF( bg_fighterAltControl,				"0",					NULL,					CVAR_SYSTEMINFO )
+XCVAR_DEF( bg_infammo,							"0",					NULL,					CVAR_ARCHIVE|CVAR_SYSTEMINFO )
+XCVAR_DEF( bg_superweapons,						"1",					NULL,					CVAR_ARCHIVE|CVAR_SYSTEMINFO )
 XCVAR_DEF( broadsword,							"0",					NULL,					CVAR_ARCHIVE )
 XCVAR_DEF( cg_animBlend,						"1",					NULL,					CVAR_NONE )
 XCVAR_DEF( cg_animSpeed,						"1",					NULL,					CVAR_CHEAT )

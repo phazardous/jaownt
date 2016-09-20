@@ -2786,25 +2786,20 @@ int WPDEBUG_SaberColor( saber_colors_t saberColor )
 	{
 		case SABER_RED:
 			return 0x000000ff;
-			break;
 		case SABER_ORANGE:
 			return 0x000088ff;
-			break;
 		case SABER_YELLOW:
 			return 0x0000ffff;
-			break;
 		case SABER_GREEN:
 			return 0x0000ff00;
-			break;
 		case SABER_BLUE:
 			return 0x00ff0000;
-			break;
 		case SABER_PURPLE:
 			return 0x00ff00ff;
-			break;
+		case SABER_BLACK:
+			return 0x00000000;
 		default:
 			return 0x00ffffff;//white
-			break;
 	}
 }
 /*

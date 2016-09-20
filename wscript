@@ -3,7 +3,7 @@
 from waflib import *
 import os, sys
 
-top = '.'
+top = os.getcwd()
 out = 'build'
 
 g_cflags = ["-std=gnu11", "-pthread"]

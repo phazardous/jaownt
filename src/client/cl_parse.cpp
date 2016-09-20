@@ -36,7 +36,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 static char hiddenCvarVal[128];
 
-char *svc_strings[256] = {
+char const *svc_strings[256] = {
 	"svc_bad",
 
 	"svc_nop",
@@ -50,7 +50,7 @@ char *svc_strings[256] = {
 	"svc_mapchange",
 };
 
-void SHOWNET( msg_t *msg, char *s) {
+void SHOWNET( msg_t *msg, char const *s) {
 	if ( cl_shownet->integer >= 2) {
 		Com_Printf ("%3i:%s\n", msg->readcount-1, s);
 	}
@@ -798,6 +798,22 @@ void CL_ParseCommandString( msg_t *msg ) {
 	Q_strncpyz( clc.serverCommands[ index ], s, sizeof( clc.serverCommands[ index ] ) );
 }
 
+/*
+=====================
+CL_ParseMinigameState
+=====================
+*/
+
+static void CL_ParseMinigameState( msg_t *msg ) {
+	int minigame_index = MSG_ReadShort( msg );
+	cl.minigameStates[minigame_index].active = (qboolean)MSG_ReadBits( msg, 1 );
+	strcpy(cl.minigameStates[minigame_index].type, MSG_ReadString( msg ));
+	cl.minigameStates[minigame_index].data_size = MSG_ReadLong( msg );
+	if (cl.minigameStates[minigame_index].data_size > 0) {
+		cl.minigameStates[minigame_index].data = realloc(cl.minigameStates[minigame_index].data, cl.minigameStates[minigame_index].data_size);
+		MSG_ReadData( msg, cl.minigameStates[minigame_index].data, cl.minigameStates[minigame_index].data_size );
+	}
+}
 
 /*
 =====================
@@ -871,6 +887,9 @@ void CL_ParseServerMessage( msg_t *msg ) {
 		case svc_mapchange:
 			if ( cls.cgameStarted )
 				CGVM_MapChange();
+			break;
+		case svc_minigamestate:
+			CL_ParseMinigameState( msg );
 			break;
 		}
 	}

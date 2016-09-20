@@ -770,7 +770,6 @@ typedef struct
 //	byte		pad[2];								// to align to a cache line
 } mgrid_t;
 
-
 typedef struct world_s {
 	char		name[MAX_QPATH];		// ie: maps/tim_dm2.bsp
 	char		baseName[MAX_QPATH];	// ie: tim_dm2
@@ -798,7 +797,6 @@ typedef struct world_s {
 	int			numfogs;
 	fog_t		*fogs;
 	int			globalFog;
-
 
 	vec3_t		lightGridOrigin;
 	vec3_t		lightGridSize;

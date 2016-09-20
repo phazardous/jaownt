@@ -466,6 +466,7 @@ typedef enum
 	SABER_GREEN,
 	SABER_BLUE,
 	SABER_PURPLE,
+	SABER_BLACK,
 	NUM_SABER_COLORS
 } saber_colors_t;
 
@@ -1392,7 +1393,7 @@ typedef enum {
 #define MAX_TERRAINS		1//32 //rwwRMG: inserted
 #define MAX_LOCATIONS		64
 
-#define	GENTITYNUM_BITS	10		// don't need to send any more
+#define	GENTITYNUM_BITS	14		// don't need to send any more
 #define	MAX_GENTITIES	(1<<GENTITYNUM_BITS)
 
 //I am reverting. I guess. For now.
@@ -1449,6 +1450,8 @@ typedef struct gameState_s {
 	char		stringData[MAX_GAMESTATE_CHARS];
 	int			dataCount;
 } gameState_t;
+
+#define MAX_MINIGAMES 32
 
 //=========================================================
 
@@ -2411,3 +2414,20 @@ typedef int( *cmpFunc_t )(const void *a, const void *b);
 
 void *Q_LinearSearch( const void *key, const void *ptr, size_t count,
 	size_t size, cmpFunc_t cmp );
+
+/*
+========================================================================
+
+Minigames
+
+========================================================================
+*/
+
+#define MAX_MINIGAME_TYPE_SIZE 64
+
+typedef struct minigameState_s {
+	qboolean active;
+	char type [MAX_MINIGAME_TYPE_SIZE];
+	int data_size;
+	void * data;
+} minigameState_t;

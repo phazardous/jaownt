@@ -680,8 +680,8 @@ qboolean trap_G2API_OverrideServer(void *serverInstance) {
 void trap_G2API_GetSurfaceName(void *ghoul2, int surfNumber, int modelIndex, char *fillBuf) {
 	Q_syscall(CG_G2_GETSURFACENAME, ghoul2, surfNumber, modelIndex, fillBuf);
 }
-void trap_CG_RegisterSharedMemory(char *memory) {
-	Q_syscall(CG_SET_SHARED_BUFFER, memory);
+void trap_CG_RegisterCG(char *memory, minigameState_t * minigameStates) {
+	Q_syscall(CG_REGISTER_CG, memory, minigameStates);
 }
 void trap_R_WeatherContentsOverride( int contents ) {
 	Q_syscall(CG_R_WEATHER_CONTENTS_OVERRIDE, contents);
@@ -745,7 +745,7 @@ static void TranslateSyscalls( void ) {
 	trap->Error								= CG_Error;
 	trap->SnapVector						= trap_SnapVector;
 	trap->MemoryRemaining					= trap_MemoryRemaining;
-	trap->RegisterSharedMemory				= trap_CG_RegisterSharedMemory;
+	trap->RegisterCG						= trap_CG_RegisterCG;
 	trap->TrueMalloc						= trap_TrueMalloc;
 	trap->TrueFree							= trap_TrueFree;
 	trap->Milliseconds						= trap_Milliseconds;
