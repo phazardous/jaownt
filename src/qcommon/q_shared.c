@@ -405,7 +405,7 @@ void COM_ParseError( char *format, ... )
 	Com_Printf("ERROR: %s, line %d: %s\n", com_parsename, COM_GetCurrentParseLine(), string);
 }
 
-void COM_ParseWarning( char *format, ... )
+void COM_ParseWarning( char const *format, ... )
 {
 	va_list argptr;
 	static char string[4096];
@@ -710,7 +710,7 @@ qboolean COM_ParseVec4( const char **buffer, vec4_t *c)
 COM_MatchToken
 ==================
 */
-void COM_MatchToken( const char **buf_p, char *match ) {
+void COM_MatchToken( const char **buf_p, char const *match ) {
 	char	*token;
 
 	token = COM_Parse( buf_p );
@@ -1369,7 +1369,7 @@ key and returns the associated value, or an empty string.
 FIXME: overflow check?
 ===============
 */
-char *Info_ValueForKey( const char *s, const char *key ) {
+char const *Info_ValueForKey( const char *s, const char *key ) {
 	char	pkey[BIG_INFO_KEY];
 	static	char value[2][BIG_INFO_VALUE];	// use two buffers so compares
 											// work without stomping on each other

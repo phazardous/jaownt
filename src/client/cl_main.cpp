@@ -1616,7 +1616,7 @@ CL_MotdPacket
 ===================
 */
 void CL_MotdPacket( netadr_t from ) {
-	char	*challenge;
+	char const * challenge;
 	char	*info;
 
 	// if not from our server, ignore it

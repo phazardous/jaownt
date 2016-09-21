@@ -6,8 +6,8 @@ import os, sys
 top = os.getcwd()
 out = 'build'
 
-g_cflags = ["-std=gnu11", "-pthread"]
-g_cxxflags = ["-std=gnu++11", "-pthread"]
+g_cflags = ["-std=gnu11", "-pthread", "-Wall"]
+g_cxxflags = ["-std=gnu++11", "-pthread", "-Wall"]
 def btype_cflags(ctx):
 	return {
 		"DEBUG"   : g_cflags + ["-Og", "-ggdb3", "-march=core2", "-mtune=native"],
@@ -72,7 +72,7 @@ def build(bld):
 	botlib_files = bld.path.ant_glob('src/botlib/*.cpp')
 	botlib = bld (
 		features = 'cxx cxxstlib',
-		cxxflags = ['-fpic', '-w'],
+		cxxflags = ['-fpic'],
 		target = "botlib",
 		includes = ["src"],
 		source = botlib_files,
@@ -105,7 +105,6 @@ def build(bld):
 	
 	client = bld (
 		features = 'cxx cxxprogram',
-		cxxflags = ['-w'],
 		target = "jaownt",
 		includes = ["src"],
 		source = clsv_common_files + client_files,
@@ -122,7 +121,6 @@ def build(bld):
 
 	server = bld (
 		features = 'cxx cxxprogram',
-		cxxflags = ['-w'],
 		target = "jaowntded",
 		includes = ["src", 'src/rd-vanilla'],
 		source = clsv_common_files + server_files,
@@ -141,7 +139,6 @@ def build(bld):
 	
 	game = bld (
 		features = 'c cshlib',
-		cxxflags = ['-w'],
 		target = "jampgame",
 		includes = ["src"],
 		source = game_files + common_files,
@@ -164,7 +161,6 @@ def build(bld):
 	
 	cgame = bld (
 		features = 'c cshlib',
-		cxxflags = ['-w'],
 		target = "cgame",
 		includes = ["src"],
 		source = cgame_files + common_files,
@@ -186,7 +182,6 @@ def build(bld):
 	
 	ui = bld (
 		features = 'c cshlib',
-		cxxflags = ['-w'],
 		target = "ui",
 		includes = ["src"],
 		source = ui_files + common_files,
@@ -208,7 +203,6 @@ def build(bld):
 	
 	rdvan = bld (
 		features = 'cxx cxxshlib',
-		cxxflags = ['-w'],
 		target = "rd-vanilla",
 		includes = ["src", "src/rd-vanilla"],
 		source = rdvan_files,

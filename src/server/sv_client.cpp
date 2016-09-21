@@ -195,7 +195,7 @@ void SV_DirectConnect( netadr_t from ) {
 	int			version;
 	int			qport;
 	int			challenge;
-	char		*password;
+	char const	*password;
 	int			startIndex;
 	char		*denied;
 	int			count;
@@ -1222,7 +1222,7 @@ into a more C friendly form.
 =================
 */
 void SV_UserinfoChanged( client_t *cl ) {
-	char	*val=NULL, *ip=NULL;
+	char const * val=NULL, *ip=NULL;
 	int		i=0, len=0;
 
 	// name for C code

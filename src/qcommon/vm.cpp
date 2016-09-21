@@ -52,14 +52,7 @@ const char *vmStrs[MAX_VM] = {
 
 static vm_t *vmTable[MAX_VM];
 
-#ifdef _DEBUG
-cvar_t *vm_legacy;
-#endif
-
 void VM_Init( void ) {
-#ifdef _DEBUG
-	vm_legacy = Cvar_Get( "vm_legacy", "0", 0 );
-#endif
 
 	memset( vmTable, 0, sizeof(vmTable) );
 }
@@ -76,11 +69,6 @@ vm_t *VM_Restart( vm_t *vm ) {
 
 vm_t *VM_Create( vmSlots_t vmSlot ) {
 	vm_t *vm = NULL;
-
-#ifdef _DEBUG
-	if ( (vm_legacy->integer & (1<<vmSlot)) )
-		return NULL;
-#endif
 
 	// see if we already have the VM
 	if ( vmTable[vmSlot] )
