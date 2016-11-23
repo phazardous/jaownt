@@ -9533,6 +9533,7 @@ static void UI_BuildQ3Model_List( void )
 
 void UI_SiegeInit(void)
 {
+	/*
 	//Load the player class types
 	BG_SiegeLoadClasses(g_UIClassDescriptions);
 
@@ -9540,6 +9541,7 @@ void UI_SiegeInit(void)
 	{ //We didn't find any?!
 		Com_Error(ERR_DROP, "Couldn't find any player classes for Siege");
 	}
+	*/
 
 	//Now load the teams since we have class data.
 	BG_SiegeLoadTeams();

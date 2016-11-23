@@ -284,6 +284,7 @@ void InitSiegeMode(void)
 		}
 	}
 
+	/*
 	//Load the player class types
 	BG_SiegeLoadClasses(NULL);
 
@@ -291,6 +292,7 @@ void InitSiegeMode(void)
 	{ //We didn't find any?!
 		trap->Error( ERR_DROP, "Couldn't find any player classes for Siege" );
 	}
+	*/
 
 	/*
 	//We could probably just see what teams are used on this level,

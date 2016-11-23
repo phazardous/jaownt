@@ -1984,7 +1984,8 @@ void Cmd_MapList_f( gentity_t *ent ) {
 }
 
 qboolean G_VoteMap( gentity_t *ent, int numArgs, const char *arg1, const char *arg2 ) {
-	char s[MAX_CVAR_VALUE_STRING] = {0}, bspName[MAX_QPATH] = {0}, *mapName = NULL, *mapName2 = NULL;
+	char s[MAX_CVAR_VALUE_STRING] = {0}, bspName[MAX_QPATH] = {0}; 
+	char const * mapName = NULL, *mapName2 = NULL;
 	fileHandle_t fp = NULL_FILE;
 	const char *arenaInfo;
 
@@ -3344,15 +3345,107 @@ void Cmd_AddBot_f( gentity_t *ent ) {
 	trap->SendServerCommand( ent-g_entities, va( "print \"%s.\n\"", G_GetStringEdString( "MP_SVGAME", "ONLY_ADD_BOTS_AS_SERVER" ) ) );
 }
 
-static void Cmd_UpdateMinigame_f( gentity_t * ent ) {
-	if (trap->Argc() <= 1) {
-		trap->SendServerCommand( ent-g_entities, "print \"Usage: updminigame <minigame index>\n\"" );
+static void Cmd_Minigame_f( gentity_t * ent ) {
+
+	int argc = trap->Argc();
+	
+	if (argc > 1) {
+	
+		char subcmd[MAX_STRING_CHARS];
+		trap->Argv( 1, subcmd, sizeof( subcmd ) );
+		
+		int minigame_index = 0;
+		if (argc >= 3) {
+			char minigame_index_s[MAX_STRING_CHARS];
+			trap->Argv( 2, minigame_index_s, sizeof( minigame_index_s ) );
+			minigame_index = atoi( minigame_index_s );
+			if (minigame_index >= MAX_MINIGAMES || minigame_index < 0) {
+				trap->SendServerCommand( ent-g_entities, va( "print \"minigame index invalid (%i), must be greater than 0, and less than %i\n\"", minigame_index, MAX_MINIGAMES ));
+				return;
+			}
+		}
+		
+		if (!strcmp(subcmd, "cmd")) {
+			if (argc < 4) {
+				trap->SendServerCommand( ent-g_entities, "print \"Usage: minigame cmd <minigame_index> <(in quotes):cmd>\n\"" );
+				return;
+			}
+			minigameType_t * mgType = BG_FindMinigame(minigames[minigame_index].type);
+			static char cmd [MAX_STRING_CHARS];
+			if (mgType && mgType->gameCmd) {
+				trap->Argv(3, cmd, MAX_STRING_CHARS);
+				if (mgType->gameCmd(minigames + minigame_index, cmd)) {
+					trap->SendServerCommand( ent-g_entities, "print \"minigame command successful\n\"" );
+					trap->UpdateMinigame(minigame_index);
+				} else {
+					trap->SendServerCommand( ent-g_entities, "print \"minigame command invalid/malformed/refused\n\"" );
+				}
+			}
+		} else if (!strcmp(subcmd, "list")) {
+			minigameState_t * mgs;
+			int i = 0;
+			trap->SendServerCommand( ent-g_entities, "print \"Active Minigames:\n\"" );
+			for (i = 0, mgs = minigames; i < MAX_MINIGAMES; i++, mgs++) {
+				if (mgs->active) {
+					trap->SendServerCommand( ent-g_entities, va( "print \"    index %i: type '%s'\n\"", i, mgs->type ));
+				}
+			}
+		} else if (!strcmp(subcmd, "new")) {
+			if (argc < 4) {
+				trap->SendServerCommand( ent-g_entities, "print \"Usage: minigame new <minigame_index> <game name> ...\n\"" );
+				return;
+			}
+			char gamename[MAX_STRING_CHARS];
+			trap->Argv( 3, gamename, sizeof( gamename ) );
+			minigameType_t * mgType = BG_FindMinigame(gamename);
+			if (!mgType) {
+				trap->SendServerCommand( ent-g_entities, va( "print \"minigame name invalid (%s), enter 'minigame types' to see list of valid minigames\n\"", gamename ));
+				return;
+			}
+			BG_MinigameNew(minigame_index, mgType);
+			trap->UpdateMinigame(minigame_index);
+		} else if (!strcmp(subcmd, "print")) {
+			if (argc < 3) {
+				trap->SendServerCommand( ent-g_entities, "print \"Usage: minigame print <minigame_index>\n\"" );
+				return;
+			}
+			minigameType_t * mgType = BG_FindMinigame(minigames[minigame_index].type);
+			if (mgType && mgType->gamePrint) {
+				trap->SendServerCommand( ent-g_entities, va("print \"Minigame Data:\n%s\n\"", mgType->gamePrint(minigames + minigame_index)) );
+			} else {
+				trap->SendServerCommand( ent-g_entities, "print \"minigame has no print function\n\"" );
+			}
+		} else if (!strcmp(subcmd, "reset")) {
+			if (argc < 3) {
+				trap->SendServerCommand( ent-g_entities, "print \"Usage: minigame reset <minigame_index>\n\"" );
+				return;
+			}
+			BG_MinigameReset(minigame_index);
+			trap->UpdateMinigame(minigame_index);
+		} else if (!strcmp(subcmd, "resetall")) {
+			BG_ClearMinigames();
+			BG_InitMinigames();
+			for (int i = 0; i < MAX_MINIGAMES; i++) {
+				trap->UpdateMinigame(minigame_index);
+			}
+		} else if (!strcmp(subcmd, "update")) {
+			if (argc < 3) {
+				trap->SendServerCommand( ent-g_entities, "print \"Usage: minigame update <minigame_index>\n\"" );
+				return;
+			}
+			trap->UpdateMinigame(minigame_index);
+		} else if (!strcmp(subcmd, "types")) {
+			trap->SendServerCommand( ent-g_entities, "print \"Minigame Types:\n\"" );
+			for (int i = 0; i < minigameTypesNum; i++) {
+				trap->SendServerCommand( ent-g_entities, va( "print \"    %s\n\"", minigameTypes[i].name ));
+			}
+		} else {
+			goto usage;
+		}
 		return;
 	}
-	char sarg[MAX_STRING_CHARS];
-	trap->Argv( 1, sarg, sizeof( sarg ) );
-	int minigame_index = atoi( sarg );
-	trap->UpdateMinigame(minigame_index);
+	usage:
+	trap->SendServerCommand( ent-g_entities, "print \"Usage: minigame [cmd, list, new, print, reset, resetall, types, update] ...\n\"" );
 }
 
 /*
@@ -3398,6 +3491,7 @@ command_t commands[] = {
 //	{ "kylesmash",			TryGrapple,					0 },
 	{ "levelshot",			Cmd_LevelShot_f,			CMD_CHEAT|CMD_ALIVE|CMD_NOINTERMISSION },
 	{ "maplist",			Cmd_MapList_f,				CMD_NOINTERMISSION },
+	{ "minigame",			Cmd_Minigame_f,				CMD_NOINTERMISSION },
 	{ "noclip",				Cmd_Noclip_f,				CMD_CHEAT|CMD_ALIVE|CMD_NOINTERMISSION },
 	{ "notarget",			Cmd_Notarget_f,				CMD_CHEAT|CMD_ALIVE|CMD_NOINTERMISSION },
 	{ "npc",				Cmd_NPC_f,					CMD_CHEAT|CMD_ALIVE },
@@ -3412,7 +3506,6 @@ command_t commands[] = {
 	{ "tell",				Cmd_Tell_f,					0 },
 	{ "thedestroyer",		Cmd_TheDestroyer_f,			CMD_CHEAT|CMD_ALIVE|CMD_NOINTERMISSION },
 	{ "t_use",				Cmd_TargetUse_f,			CMD_CHEAT|CMD_ALIVE },
-	{ "updminigame",		Cmd_UpdateMinigame_f,		CMD_NOINTERMISSION },
 	{ "voice_cmd",			Cmd_VoiceCommand_f,			CMD_NOINTERMISSION },
 	{ "vote",				Cmd_Vote_f,					CMD_NOINTERMISSION },
 	{ "where",				Cmd_Where_f,				CMD_NOINTERMISSION },

@@ -3380,6 +3380,23 @@ most world construction surfaces.
 
 ===============
 */
+
+static shader_t * rando_shado() {
+	shader_t	*sh;
+	while (1) {
+		int rhash = rand() % FILE_HASH_SIZE;
+		int shcnt = 0;
+		for (sh = hashTable[rhash]; sh; sh = sh->next) {
+			shcnt++;
+		}
+		if (!shcnt) continue;
+		int rnsh = rand() % shcnt;
+		int i = 0;
+		for (sh = hashTable[rhash]; i < rnsh; sh = sh->next) i++;
+		return sh;
+	}
+}
+
 shader_t *R_FindShader( const char *name, const int *lightmapIndex, const byte *styles, qboolean mipRawImage )
 {
 	char		strippedName[MAX_QPATH];
@@ -3423,6 +3440,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndex, const byte *
 		// with that same strippedName a new default shader is created.
 		if (IsShader(sh, strippedName, lightmapIndex, styles))
 		{
+			//return rando_shado();
 			return sh;
 		}
 	}
@@ -3443,6 +3461,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndex, const byte *
 			shader.defaultShader = true;
 		}
 		sh = FinishShader();
+		//return rando_shado();
 		return sh;
 	}
 
@@ -3457,6 +3476,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndex, const byte *
 		ri->Printf( PRINT_DEVELOPER, S_COLOR_RED "Couldn't find image for shader %s\n", name );
 		shader.defaultShader = true;
 		return FinishShader();
+		//return rando_shado();
 	}
 	//
 	// create the default shading commands
@@ -3510,6 +3530,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndex, const byte *
 	}
 
 	return FinishShader();
+	//return rando_shado();
 }
 
 shader_t *R_FindServerShader( const char *name, const int *lightmapIndex, const byte *styles, qboolean mipRawImage )

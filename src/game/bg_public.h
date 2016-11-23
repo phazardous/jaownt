@@ -1772,10 +1772,27 @@ void BG_SI_DeactivateTrail ( saberInfo_t *saber, float duration );
 extern void BG_AttachToRancor( void *ghoul2,float rancYaw,vec3_t rancOrigin,int time,qhandle_t *modelList,vec3_t modelScale,qboolean inMouth,vec3_t out_origin,vec3_t out_angles,matrix3_t out_axis );
 void BG_ClearRocketLock( playerState_t *ps );
 
-extern minigameState_t bg_minigames [MAX_MINIGAMES];
+
+
+typedef struct minigameType_s {
+	char name [MAX_MINIGAME_TYPE_SIZE];
+	size_t data_size;
+	void (*gameNew) (minigameState_t *);
+	qboolean (*gameCmd) (minigameState_t *, char const *);
+	char const * (*gamePrint) (minigameState_t *); //optional
+} minigameType_t;
+
+extern minigameState_t minigames [MAX_MINIGAMES];
+
+extern minigameType_t minigameTypes [];
+extern size_t minigameTypesNum;
+
+minigameType_t * BG_FindMinigame(char const *);
 
 void BG_InitMinigames();
 void BG_ClearMinigames();
+void BG_MinigameReset(int index);
+void BG_MinigameNew(int index, minigameType_t * type);
 
 extern int WeaponReadyAnim[WP_NUM_WEAPONS];
 extern int WeaponAttackAnim[WP_NUM_WEAPONS];

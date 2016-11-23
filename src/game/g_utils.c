@@ -853,7 +853,7 @@ gentity_t *G_Spawn( void ) {
 
 	// let the server system know that there are more entities
 	trap->LocateGameData( (sharedEntity_t *)level.gentities, level.num_entities, sizeof( gentity_t ),
-		&level.clients[0].ps, sizeof( level.clients[0] ), bg_minigames );
+		&level.clients[0].ps, sizeof( level.clients[0] ), minigames );
 
 	G_InitGentity( e );
 	return e;

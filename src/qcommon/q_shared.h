@@ -1451,7 +1451,7 @@ typedef struct gameState_s {
 	int			dataCount;
 } gameState_t;
 
-#define MAX_MINIGAMES 32
+#define MAX_MINIGAMES 8
 
 //=========================================================
 

@@ -6,8 +6,8 @@ import os, sys
 top = os.getcwd()
 out = 'build'
 
-g_cflags = ["-std=gnu11", "-pthread", "-Wall"]
-g_cxxflags = ["-std=gnu++11", "-pthread", "-Wall"]
+g_cflags = ["-std=c11", "-pthread", "-Wall"]
+g_cxxflags = ["-std=c++11", "-pthread", "-Wall"]
 def btype_cflags(ctx):
 	return {
 		"DEBUG"   : g_cflags + ["-Og", "-ggdb3", "-march=core2", "-mtune=native"],

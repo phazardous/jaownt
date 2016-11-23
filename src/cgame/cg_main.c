@@ -2491,7 +2491,7 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum )
 
 	BG_InitAnimsets(); //clear it out
 
-	trap->RegisterCG( cg.sharedBuffer.raw, bg_minigames );
+	trap->RegisterCG( cg.sharedBuffer.raw, minigames );
 
 	//Load external vehicle data
 	BG_VehicleLoadParms();

@@ -1515,7 +1515,8 @@ static void G2_RagDollMatchPosition()
 
 		vec3_t &desiredPos=e.desiredOrigin; // we will save this
 
-		if (0&&(bone.RagFlags & RAG_PCJ_PELVIS))
+#if 0
+		if ((bone.RagFlags & RAG_PCJ_PELVIS))
 		{
 			// just move to quake origin
 			VectorCopy(bone.originalOrigin,desiredPos);
@@ -1524,6 +1525,7 @@ static void G2_RagDollMatchPosition()
 			VectorCopy(e.currentOrigin,bone.lastPosition); // last arg is dest
 			continue;
 		}
+#endif
 
 		if (!(bone.RagFlags & RAG_EFFECTOR))
 		{
@@ -2588,7 +2590,7 @@ static void G2_RagDoll(CGhoul2Info_v &ghoul2V,int g2Index,CRagDollUpdateParams *
 #define _DEBUG_BONE_NAMES
 #endif
 
-static inline char *G2_Get_Bone_Name(CGhoul2Info *ghlInfo, boneInfo_v &blist, int boneNum)
+static inline char const *G2_Get_Bone_Name(CGhoul2Info *ghlInfo, boneInfo_v &blist, int boneNum)
 {
 	mdxaSkel_t			*skel;
 	mdxaSkelOffsets_t	*offsets;
@@ -2632,7 +2634,7 @@ static void G2_RagDollCurrentPosition(CGhoul2Info_v &ghoul2V,int g2Index,int fra
 		G2_GetBoneMatrixLow(ghoul2,bone.boneNumber,scale,ragBones[i],ragBasepose[i],ragBaseposeInv[i]);
 
 #ifdef _DEBUG_BONE_NAMES
-		char *debugBoneName = G2_Get_Bone_Name(&ghoul2, ghoul2.mBlist, bone.boneNumber);
+		char const *debugBoneName = G2_Get_Bone_Name(&ghoul2, ghoul2.mBlist, bone.boneNumber);
 		assert(debugBoneName);
 #endif
 
@@ -3833,7 +3835,7 @@ static bool G2_RagDollSettlePositionNumeroTrois(CGhoul2Info_v &ghoul2V, const ve
 #ifdef _DEBUG_BONE_NAMES
 			if (bone.solidCount > 64)
 			{
-				char *debugBoneName = G2_Get_Bone_Name(&ghoul2V[0], ghoul2V[0].mBlist, bone.boneNumber);
+				char const *debugBoneName = G2_Get_Bone_Name(&ghoul2V[0], ghoul2V[0].mBlist, bone.boneNumber);
 				vec3_t absmin, absmax;
 
 				assert(debugBoneName);

@@ -282,7 +282,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	// let the server system know where the entites are
 	trap->LocateGameData( (sharedEntity_t *)level.gentities, level.num_entities, sizeof( gentity_t ),
-		&level.clients[0].ps, sizeof( level.clients[0] ), bg_minigames );
+		&level.clients[0].ps, sizeof( level.clients[0] ), minigames );
 
 	//Load sabers.cfg data
 	WP_SaberLoadParms();

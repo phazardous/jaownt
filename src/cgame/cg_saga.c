@@ -313,12 +313,12 @@ void CG_InitSiegeMode(void)
 	}
 
 	//Load the player class types
-	BG_SiegeLoadClasses(NULL);
+	//BG_SiegeLoadClasses(NULL);
 
-	if (!bgNumSiegeClasses)
-	{ //We didn't find any?!
-		trap->Error( ERR_DROP, "Couldn't find any player classes for Siege");
-	}
+	//if (!bgNumSiegeClasses)
+	//{ //We didn't find any?!
+	//	trap->Error( ERR_DROP, "Couldn't find any player classes for Siege");
+	//}
 
 	//Now load the teams since we have class data.
 	BG_SiegeLoadTeams();
