@@ -28,7 +28,6 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <pwd.h>
 #include <libgen.h>
 #include <sched.h>
 #include <signal.h>
@@ -36,6 +35,15 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/qcommon.h"
 #include "qcommon/q_shared.h"
 #include "sys_local.h"
+
+
+
+#ifdef __linux__
+#include <pwd.h>
+#else
+#include <winsock2.h>
+#define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
+#endif
 
 qboolean stdinIsATTY = qfalse;
 
@@ -46,11 +54,13 @@ void Sys_PlatformInit( void )
 {
 	const char* term = getenv( "TERM" );
 
+#ifdef __linux__
 	signal( SIGHUP, Sys_SigHandler );
 	signal( SIGQUIT, Sys_SigHandler );
 	signal( SIGTRAP, Sys_SigHandler );
 	signal( SIGABRT, Sys_SigHandler );
 	signal( SIGBUS, Sys_SigHandler );
+#endif
 
 	if (isatty( STDIN_FILENO ) && !( term && ( !strcmp( term, "raw" ) || !strcmp( term, "dumb" ) ) ))
 		stdinIsATTY = qtrue;
@@ -135,14 +145,30 @@ bool Sys_RandomBytes( byte *string, int len )
  Sys_GetCurrentUser
  ==================
  */
-char *Sys_GetCurrentUser( void )
-{
+char *Sys_GetCurrentUser( void ) {
+	
+#ifdef __linux__
 	struct passwd *p;
 
 	if ( (p = getpwuid( getuid() )) == NULL ) {
 		return "player";
 	}
 	return p->pw_name;
+#else
+	static char s_userName[1024];
+	DWORD size = sizeof( s_userName );
+
+	if ( !GetUserName( s_userName, &size ) )
+		strcpy( s_userName, "player" );
+
+	if ( !s_userName[0] )
+	{
+		strcpy( s_userName, "player" );
+	}
+
+	return s_userName;
+#endif
+
 }
 
 #define MEM_THRESHOLD 96*1024*1024
@@ -400,7 +426,11 @@ Sys_Mkdir
 */
 qboolean Sys_Mkdir( const char *path )
 {
-	int result = mkdir( path, 0750 );
+	int result = mkdir( path
+#ifdef __linux__
+, 0750
+#endif
+	);
 
 	if( result != 0 )
 		return (qboolean)(errno == EEXIST);

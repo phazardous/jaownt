@@ -6,53 +6,79 @@ import os, sys
 top = os.getcwd()
 out = 'build'
 
-g_cflags = ["-std=c11", "-pthread", "-Wall"]
-g_cxxflags = ["-std=c++11", "-pthread", "-Wall"]
+plat_linux = False
+plat_windows = False
+
+if sys.platform.startswith('win32'):
+	plat_windows = True
+elif sys.platform.startswith('linux'):
+	plat_linux = True
+
+module_end = "bin"
+if plat_linux:
+	module_end = 'so'
+elif plat_windows:
+	module_end = 'dll'
+	
+g_comflags = ['-pthread', '-w']
+if plat_windows:
+	g_comflags += ['-static', '-static-libgcc', '-static-libstdc++']
+g_cflags = ['-std=c11'] + g_comflags
+g_cxxflags = ['-std=c++11'] + g_comflags
+
 def btype_cflags(ctx):
 	return {
-		"DEBUG"   : g_cflags + ["-Og", "-ggdb3", "-march=core2", "-mtune=native"],
-		"NATIVE"  : g_cflags + ["-Ofast", "-march=native", "-mtune=native"],
-		"RELEASE" : g_cflags + ["-O3", "-march=core2", "-mtune=generic"],
+		'DEBUG'   : g_cflags + ['-Og', '-ggdb3', '-march=core2', '-mtune=native'],
+		'NATIVE'  : g_cflags + ['-Ofast', '-march=native', '-mtune=native'],
+		'RELEASE' : g_cflags + ['-O3', '-march=core2', '-mtune=generic'],
 	}.get(ctx.env.BUILD_TYPE, g_cflags)
 def btype_cxxflags(ctx):
 	return {
-		"DEBUG"   : g_cxxflags + ["-Og", "-ggdb3", "-march=core2", "-mtune=native"],
-		"NATIVE"  : g_cxxflags + ["-Ofast", "-march=native", "-mtune=native"],
-		"RELEASE" : g_cxxflags + ["-O3", "-march=core2", "-mtune=generic"],
+		'DEBUG'   : g_cxxflags + ['-Og', '-ggdb3', '-march=core2', '-mtune=native'],
+		'NATIVE'  : g_cxxflags + ['-Ofast', '-march=native', '-mtune=native'],
+		'RELEASE' : g_cxxflags + ['-O3', '-march=core2', '-mtune=generic'],
 	}.get(ctx.env.BUILD_TYPE, g_cxxflags)
 
 def options(opt):
-	opt.load("gcc")
-	opt.load("g++")
-	opt.add_option('--build_type', dest='build_type', type="string", default='RELEASE', action='store', help="DEBUG, NATIVE, RELEASE")
+	opt.load('gcc')
+	opt.load('g++')
+	opt.add_option('--build_type', dest='build_type', type='string', default='RELEASE', action='store', help='DEBUG, NATIVE, RELEASE')
 
 def configure(ctx):
 	
-	ctx.load("gcc")
-	ctx.load("g++")
+	ctx.load('gcc')
+	ctx.load('g++')
 	ctx.check(features='c cprogram', lib='z', uselib_store='ZLIB')
 	ctx.check(features='c cprogram', lib='dl', uselib_store='DL')
 	ctx.check(features='c cprogram', lib='jpeg', uselib_store='JPEG')
 	ctx.check(features='c cprogram', lib='png', uselib_store='PNG')
-	ctx.check(features='c cprogram', lib='GL', uselib_store='GL')
 	ctx.check(features='c cprogram', lib='pthread', uselib_store='PTHREAD')
-	ctx.check_cfg(path='sdl2-config', args='--cflags --libs', package='', uselib_store='SDL')
+	
+	if plat_linux:
+		ctx.check(features='c cprogram', lib='GL', uselib_store='GL')
+		ctx.check_cfg(path='sdl2-config', args='--cflags --libs', package='', uselib_store='SDL')
+		
+	elif plat_windows:
+		ctx.check(features='c cprogram', lib='opengl32', uselib_store='GL')
+		ctx.check(features='c cprogram', lib='ws2_32', uselib_store='WS2')
+		ctx.check(features='c cprogram', lib='winmm', uselib_store='WMM')
+		ctx.check_cfg(path='bash sdl2-config', args='--cflags --libs', package='', uselib_store='SDL')
 	
 	btup = ctx.options.build_type.upper()
-	if btup in ["DEBUG", "NATIVE", "RELEASE"]:
-		Logs.pprint("PINK", "Setting up environment for known build type: " + btup)
+	if btup in ['DEBUG', 'NATIVE', 'RELEASE']:
+		Logs.pprint('PINK', 'Setting up environment for known build type: ' + btup)
 		ctx.env.BUILD_TYPE = btup
 		ctx.env.CFLAGS = btype_cflags(ctx)
 		ctx.env.CXXFLAGS = btype_cxxflags(ctx)
-		Logs.pprint("PINK", "CFLAGS: " + ' '.join(ctx.env.CFLAGS))
-		Logs.pprint("PINK", "CXXFLAGS: " + ' '.join(ctx.env.CXXFLAGS))
-		if btup == "DEBUG":
-			ctx.define("_DEBUG", 1)
+		Logs.pprint('PINK', 'CFLAGS: ' + ' '.join(ctx.env.CFLAGS))
+		Logs.pprint('PINK', 'CXXFLAGS: ' + ' '.join(ctx.env.CXXFLAGS))
+		if btup == 'DEBUG':
+			ctx.define('_DEBUG', 1)
 		else:
-			ctx.define("FINAL_BUILD", 1)
-		ctx.define("ARCH_STRING", "x86_64")
+			ctx.define('FINAL_BUILD', 1)
+		ctx.define('ARCH_STRING', 'x86_64')
 	else:
-		Logs.error("UNKNOWN BUILD TYPE: " + btup)
+		Logs.error('UNKNOWN BUILD TYPE: ' + btup)
 
 def build(bld):
 	
@@ -61,9 +87,8 @@ def build(bld):
 	minizip_files = bld.path.ant_glob('src/minizip/*.c')
 	minizip = bld (
 		features = 'c cstlib',
-		cflags = ['-fpic'],
-		target = "minizip",
-		includes = "src/minizip/include/minizip",
+		target = 'minizip',
+		includes = 'src/minizip/include/minizip',
 		source = minizip_files,
 	)
 	
@@ -72,9 +97,8 @@ def build(bld):
 	botlib_files = bld.path.ant_glob('src/botlib/*.cpp')
 	botlib = bld (
 		features = 'cxx cxxstlib',
-		cxxflags = ['-fpic'],
-		target = "botlib",
-		includes = ["src"],
+		target = 'botlib',
+		includes = ['src'],
 		source = botlib_files,
 		defines = ['BOTLIB'],
 	)
@@ -92,8 +116,12 @@ def build(bld):
 	clsv_common_files += bld.path.ant_glob('src/sys/sys_event.cpp')
 	clsv_common_files += bld.path.ant_glob('src/sys/sys_log.cpp')
 	clsv_common_files += bld.path.ant_glob('src/sys/con_log.cpp')
-	clsv_common_files += bld.path.ant_glob('src/sys/con_tty.cpp')
 	clsv_common_files += bld.path.ant_glob('src/sys/sys_unix.cpp')
+	
+	if plat_linux:
+		clsv_common_files += bld.path.ant_glob('src/sys/con_tty.cpp')
+	elif plat_windows:
+		clsv_common_files += bld.path.ant_glob('src/sys/con_win32.cpp')
 	
 	# CLIENT
 	
@@ -105,12 +133,12 @@ def build(bld):
 	
 	client = bld (
 		features = 'cxx cxxprogram',
-		target = "jaownt",
-		includes = ["src"],
+		target = 'jaownt',
+		includes = ['src'],
 		source = clsv_common_files + client_files,
-		uselib = ['SDL', 'ZLIB', 'DL', 'PTHREAD'],
+		uselib = ['SDL', 'ZLIB', 'DL', 'PTHREAD', 'WS2', 'WMM'],
 		use = ['minizip', 'botlib'],
-		install_path = os.path.join(top, "install")
+		install_path = os.path.join(top, 'install')
 	)
 	
 	# SERVER
@@ -121,13 +149,13 @@ def build(bld):
 
 	server = bld (
 		features = 'cxx cxxprogram',
-		target = "jaowntded",
-		includes = ["src", 'src/rd-vanilla'],
+		target = 'jaowntded',
+		includes = ['src', 'src/rd-vanilla'],
 		source = clsv_common_files + server_files,
 		defines = ['_CONSOLE', 'DEDICATED'],
-		uselib = ['ZLIB', 'DL', 'PTHREAD'],
+		uselib = ['ZLIB', 'DL', 'PTHREAD', 'WS2'],
 		use = ['minizip', 'botlib'],
-		install_path = os.path.join(top, "install")
+		install_path = os.path.join(top, 'install')
 	)
 	### GAME/CGAME/UI ###
 	
@@ -139,15 +167,15 @@ def build(bld):
 	
 	game = bld (
 		features = 'c cshlib',
-		target = "jampgame",
-		includes = ["src"],
+		target = 'jampgame',
+		includes = ['src'],
 		source = game_files + common_files,
 		uselib = ['PTHREAD'],
 		defines = ['_GAME'],
-		install_path = os.path.join(top, "install", "base")
+		install_path = os.path.join(top, 'install', 'base')
 	)
 	
-	game.env.cshlib_PATTERN = '%sx86_64.so'
+	game.env.cshlib_PATTERN = '%sx86_64.' + module_end
 	
 	# CGAME
 	
@@ -161,15 +189,15 @@ def build(bld):
 	
 	cgame = bld (
 		features = 'c cshlib',
-		target = "cgame",
-		includes = ["src"],
+		target = 'cgame',
+		includes = ['src'],
 		source = cgame_files + common_files,
 		uselib = ['PTHREAD'],
 		defines = ['_CGAME'],
-		install_path = os.path.join(top, "install", "base")
+		install_path = os.path.join(top, 'install', 'base')
 	)
 	
-	cgame.env.cshlib_PATTERN = '%sx86_64.so'
+	cgame.env.cshlib_PATTERN = '%sx86_64.' + module_end
 	
 	# UI
 	
@@ -182,15 +210,15 @@ def build(bld):
 	
 	ui = bld (
 		features = 'c cshlib',
-		target = "ui",
-		includes = ["src"],
+		target = 'ui',
+		includes = ['src'],
 		source = ui_files + common_files,
 		uselib = ['PTHREAD'],
 		defines = ['UI_BUILD'],
-		install_path = os.path.join(top, "install", "base")
+		install_path = os.path.join(top, 'install', 'base')
 	)
 	
-	ui.env.cshlib_PATTERN = '%sx86_64.so'
+	ui.env.cshlib_PATTERN = '%sx86_64.' + module_end
 	
 	### RD-VANILLA ###
 	
@@ -203,14 +231,14 @@ def build(bld):
 	
 	rdvan = bld (
 		features = 'cxx cxxshlib',
-		target = "rd-vanilla",
-		includes = ["src", "src/rd-vanilla"],
+		target = 'rd-vanilla',
+		includes = ['src', 'src/rd-vanilla'],
 		source = rdvan_files,
 		uselib = ['JPEG', 'PNG', 'GL', 'PTHREAD'],
-		install_path = os.path.join(top, "install")
+		install_path = os.path.join(top, 'install')
 	)
 	
-	rdvan.env.cxxshlib_PATTERN = '%s_x86_64.so'
+	rdvan.env.cxxshlib_PATTERN = '%s_x86_64.' + module_end
 	
 	###
 	
