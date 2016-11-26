@@ -1,0 +1,10 @@
+.idea/
+CMakeLists.txt
+cmake-build-*/
+*~
+build/
+install/
+waf*/
+.kdev4/
+.lock
+*.kdev4
