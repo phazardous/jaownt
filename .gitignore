@@ -1,0 +1,7 @@
+.idea/
+CMakeLists.txt
+cmake-build-*/
+*~
+build/
+waf*/
+
