@@ -6,5 +6,5 @@ build/
 install/
 waf*/
 .kdev4/
-.lock
+.lock*
 *.kdev4
