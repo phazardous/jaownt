@@ -1,8 +1,16 @@
+### Project Files ###
 CMakeLists.txt
 cmake-build-*/
+waf*/
+*.kdev4
+
+### Hidden Files ###
+.*
 *~
+
+### Build Output ###
 build/
 install/
-waf*/
-.*
-*.kdev4
+
+
+
