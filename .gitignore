@@ -4,4 +4,6 @@ cmake-build-*/
 *~
 build/
 waf*/
-
+.kdev4/
+.lock
+*.kdev4
