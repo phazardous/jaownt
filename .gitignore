@@ -3,6 +3,7 @@ CMakeLists.txt
 cmake-build-*/
 *~
 build/
+install/
 waf*/
 .kdev4/
 .lock
