@@ -300,11 +300,13 @@ extern int s_UseOpenAL;
 void SNDDMA_Activate( qboolean activate )
 {
 #ifdef USE_OPENAL
-	if ( s_UseOpenAL )
-	{
+	if ( s_UseOpenAL ) {
 		S_AL_MuteAllSounds( (qboolean)!activate );
 	}
 #endif
 
 	SDL_PauseAudio( !activate );
+	if ( activate ) {
+		S_StopAllSounds();
+	}
 }

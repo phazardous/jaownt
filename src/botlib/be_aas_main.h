@@ -43,7 +43,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 extern aas_t aasworld;
 
 //AAS error message
-void QDECL AAS_Error(char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+void QDECL AAS_Error(char const *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 //set AAS initialized
 void AAS_SetInitialized(void);
 //setup AAS with the given number of entities and clients

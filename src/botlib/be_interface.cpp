@@ -106,7 +106,7 @@ qboolean ValidClientNumber(int num, char *str)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-qboolean ValidEntityNumber(int num, char *str)
+qboolean ValidEntityNumber(int num, char const *str)
 {
 	if (num < 0 || num > botlibglobals.maxentities)
 	{
@@ -122,7 +122,7 @@ qboolean ValidEntityNumber(int num, char *str)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-qboolean BotLibSetup(char *str)
+qboolean BotLibSetup(char const * str)
 {
 	if (!botlibglobals.botlibsetup)
 	{
@@ -149,7 +149,7 @@ int Export_BotLibSetup(void)
 
 	if(botDeveloper)
 	{
-		char *homedir, *gamedir, *basedir;
+		char const * homedir, * gamedir, * basedir;
 		char logfilename[MAX_OSPATH];
 
 		homedir = LibVarGetString("homedir");
@@ -257,7 +257,7 @@ int Export_BotLibVarSet(char *var_name, char *value)
 //===========================================================================
 int Export_BotLibVarGet(char *var_name, char *value, int size)
 {
-	char *varvalue;
+	char const * varvalue;
 
 	varvalue = LibVarGetString(var_name);
 	strncpy(value, varvalue, size-1);

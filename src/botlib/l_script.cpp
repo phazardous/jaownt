@@ -235,7 +235,7 @@ const char *PunctuationFromNum(script_t *script, int num)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void QDECL ScriptError(script_t *script, char *str, ...)
+void QDECL ScriptError(script_t *script, char const *str, ...)
 {
 	char text[1024];
 	va_list ap;
@@ -261,7 +261,7 @@ void QDECL ScriptError(script_t *script, char *str, ...)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void QDECL ScriptWarning(script_t *script, char *str, ...)
+void QDECL ScriptWarning(script_t *script, char const *str, ...)
 {
 	char text[1024];
 	va_list ap;
@@ -1029,7 +1029,7 @@ int PS_ExpectAnyToken(script_t *script, token_t *token)
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PS_CheckTokenString(script_t *script, char *string)
+int PS_CheckTokenString(script_t *script, char const *string)
 {
 	token_t tok;
 
@@ -1068,7 +1068,7 @@ int PS_CheckTokenType(script_t *script, int type, int subtype, token_t *token)
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PS_SkipUntilString(script_t *script, char *string)
+int PS_SkipUntilString(script_t *script, char const *string)
 {
 	token_t token;
 
@@ -1399,7 +1399,7 @@ script_t *LoadScriptFile(const char *filename)
 // Returns:				-
 // Changes Globals:		-
 //============================================================================
-script_t *LoadScriptMemory(char *ptr, int length, char *name)
+script_t *LoadScriptMemory(char const *ptr, int length, char const *name)
 {
 	void *buffer;
 	script_t *script;
@@ -1448,7 +1448,7 @@ void FreeScript(script_t *script)
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PS_SetBaseFolder(char *path)
+void PS_SetBaseFolder(char const *path)
 {
 #ifdef BSPC
 	sprintf(basefolder, path);

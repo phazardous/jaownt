@@ -2752,12 +2752,25 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 	int selectLevel = 0;
 	qboolean usingSiegeStyle = qfalse;
 
-	if ( !ent || !ent->client )
-	{
+	if ( !ent || !ent->client ) {
 		return;
 	}
-	if ( ent->client->ps.weapon != WP_SABER )
+	
+	if ( level.intermissionQueued || level.intermissiontime )
 	{
+		trap->SendServerCommand( ent-g_entities, va( "print \"%s (saberAttackCycle)\n\"", G_GetStringEdString( "MP_SVGAME", "CANNOT_TASK_INTERMISSION" ) ) );
+		return;
+	}
+
+	if ( ent->health <= 0
+			|| ent->client->tempSpectate >= level.time
+			|| ent->client->sess.sessionTeam == TEAM_SPECTATOR )
+	{
+		trap->SendServerCommand( ent-g_entities, va( "print \"%s\n\"", G_GetStringEdString( "MP_SVGAME", "MUSTBEALIVE" ) ) );
+		return;
+	}
+	
+	if ( ent->client->ps.weapon != WP_SABER ) {
         return;
 	}
 	/*

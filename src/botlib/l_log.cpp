@@ -116,7 +116,7 @@ void Log_Shutdown(void)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void QDECL Log_Write(char *fmt, ...)
+void QDECL Log_Write(char const *fmt, ...)
 {
 	va_list ap;
 
