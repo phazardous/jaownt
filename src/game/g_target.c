@@ -167,6 +167,7 @@ void Use_Target_Print (gentity_t *ent, gentity_t *other, gentity_t *activator)
 		ent->genericValue14 = level.time + ent->wait;
 	}
 
+/* disabling cause annoying
 #ifndef FINAL_BUILD
 	if (!ent || !ent->inuse)
 	{
@@ -202,6 +203,7 @@ void Use_Target_Print (gentity_t *ent, gentity_t *other, gentity_t *activator)
 	}
 	ent->genericValue15 = level.time + 5000;
 #endif
+*/
 
 	G_ActivateBehavior(ent,BSET_USE);
 	if ( ( ent->spawnflags & 4 ) )
