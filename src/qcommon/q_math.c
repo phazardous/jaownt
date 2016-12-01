@@ -896,6 +896,17 @@ void SnapVector( float *v ) {
 #endif
 }
 
+void VectorOffset(vec3_t pos, vec3_t angles, float distance, vec3_t out) {
+	vec3_t delta, adjang;
+	float z = pos[2];
+	VectorCopy(angles, adjang);
+	adjang[0] = 0;
+	adjang[2] = 0;
+	AngleVectors(adjang, delta, NULL, NULL);
+	VectorMA(pos, distance, delta, out);
+	out[2] = z;
+}
+
 int Q_log2( int val ) {
 	int answer;
 
@@ -905,8 +916,6 @@ int Q_log2( int val ) {
 	}
 	return answer;
 }
-
-
 
 /*
 =================
