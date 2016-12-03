@@ -305,8 +305,6 @@ void SNDDMA_Activate( qboolean activate )
 	}
 #endif
 
-	SDL_PauseAudio( !activate );
-	if ( activate ) {
-		S_StopAllSounds();
-	}
+	if (activate) S_ClearSoundBuffer();
+	SDL_PauseAudio(!activate);
 }
