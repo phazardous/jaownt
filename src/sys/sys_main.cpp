@@ -682,6 +682,7 @@ int main ( int argc, char* argv[] )
 	}
 
 	Com_Init (commandLine);
+	CON_Hist_Load();
 
 	NET_Init();
 

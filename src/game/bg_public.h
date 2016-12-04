@@ -301,8 +301,8 @@ typedef struct animation_s {
 extern qboolean			BGPAFtextLoaded;
 extern animation_t		bgHumanoidAnimations[MAX_TOTALANIMATIONS];
 
-#define MAX_ANIM_FILES	16
-#define MAX_ANIM_EVENTS 300
+#define MAX_ANIM_FILES	256
+#define MAX_ANIM_EVENTS 1200
 
 typedef enum
 {

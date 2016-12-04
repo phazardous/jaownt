@@ -264,6 +264,45 @@ field_t *Hist_Next( void )
 	return &(ttyEditLines[hist_current]);
 }
 
+
+/*
+==================
+CON_Hist_Save
+==================
+*/
+static void CON_Hist_Save( void ) {
+	fileHandle_t f = FS_FOpenFileWrite("conhist.log");
+	for (int i = hist_count - 1; i >= 0; i--) {
+		FS_Write(ttyEditLines[i].buffer, ttyEditLines[i].cursor, f);
+		FS_Write("\n", 1, f);
+	}
+	FS_FCloseFile(f);
+}
+
+/*
+==================
+CON_Hist_Load
+==================
+*/
+void CON_Hist_Load( void ) {
+	fileHandle_t f;
+	long len = FS_FOpenFileRead("conhist.log", &f, qtrue);
+	if (f) {
+		field_t tf {};
+		for (long i = 0; i < len; i++) {
+			char c;
+			FS_Read(&c, 1, f);
+			if (c == '\n') {
+				Hist_Add(&tf);
+				tf = {};
+			} else {
+				tf.buffer[tf.cursor++] = c;
+			}
+		}
+		FS_FCloseFile(f);
+	}
+}
+
 /*
 ==================
 CON_SigCont
@@ -384,6 +423,7 @@ char *CON_Input( void )
 
 					// push it in history
 					Hist_Add(&TTY_con);
+					CON_Hist_Save();
 					CON_Hide();
 					Com_Printf("%s%s\n", TTY_CONSOLE_PROMPT, TTY_con.buffer);
 					Field_Clear(&TTY_con);
@@ -391,6 +431,7 @@ char *CON_Input( void )
 #else
 					// push it in history
 					Hist_Add(&TTY_con);
+					CON_Hist_Save();
 					Q_strncpyz(text, TTY_con.buffer, sizeof(text));
 					Field_Clear(&TTY_con);
 					key = '\n';

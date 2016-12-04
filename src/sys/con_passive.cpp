@@ -64,3 +64,7 @@ void CON_Print( const char *msg )
 	Q_StripColor( cmsg );
 	printf( "%s", cmsg );
 }
+
+void CON_Hist_Load( void ) {
+	
+}

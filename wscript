@@ -56,6 +56,7 @@ def configure(ctx):
 	
 	ctx.check(features='c cprogram', lib='z', uselib_store='ZLIB')
 	ctx.check(features='c cprogram', lib='dl', uselib_store='DL')
+	
 	if ctx.env.BUILD_CLIENT:
 		ctx.check(features='c cprogram', lib='jpeg', uselib_store='JPEG')
 		ctx.check(features='c cprogram', lib='png', uselib_store='PNG')
@@ -71,6 +72,7 @@ def configure(ctx):
 			ctx.check(features='c cprogram', lib='opengl32', uselib_store='GL')
 			ctx.check(features='c cprogram', lib='winmm', uselib_store='WMM')
 			ctx.check_cfg(path='bash sdl2-config', args='--cflags --libs', package='', uselib_store='SDL')
+	ctx.check_cfg(path='pkg-config', args='--cflags --libs', package='mono-2', uselib_store='MONO')
 	
 	btup = ctx.options.build_type.upper()
 	if btup in ['DEBUG', 'NATIVE', 'RELEASE']:
@@ -126,6 +128,8 @@ def build(bld):
 	clsv_common_files += bld.path.ant_glob('src/sys/con_log.cpp')
 	clsv_common_files += bld.path.ant_glob('src/sys/sys_unix.cpp')
 	
+	clsv_common_files += bld.path.ant_glob('src/mono/*.cpp')
+	
 	if plat_linux:
 		clsv_common_files += bld.path.ant_glob('src/sys/con_tty.cpp')
 	elif plat_windows:
@@ -146,7 +150,7 @@ def build(bld):
 			target = 'jaownt',
 			includes = ['src'],
 			source = clsv_common_files + client_files,
-			uselib = ['SDL', 'ZLIB', 'DL', 'PTHREAD', 'WS2', 'WMM'],
+			uselib = ['SDL', 'ZLIB', 'DL', 'PTHREAD', 'WS2', 'WMM', 'MONO'],
 			use = ['minizip', 'botlib'],
 			install_path = os.path.join(top, 'install')
 		)
@@ -165,7 +169,7 @@ def build(bld):
 			includes = ['src', 'src/rd-vanilla'],
 			source = clsv_common_files + server_files,
 			defines = ['_CONSOLE', 'DEDICATED'],
-			uselib = ['ZLIB', 'DL', 'PTHREAD', 'WS2'],
+			uselib = ['ZLIB', 'DL', 'PTHREAD', 'WS2', 'MONO'],
 			use = ['minizip', 'botlib'],
 			install_path = os.path.join(top, 'install')
 		)
