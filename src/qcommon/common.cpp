@@ -33,7 +33,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
-#include "mono/mono_public.hpp"
+#include "sharp/sharp_public.hpp"
 
 FILE *debuglogfile;
 fileHandle_t logfile;
@@ -1244,7 +1244,7 @@ void Com_Init( char *commandLine ) {
 		SE_Init();
 
 		Sys_Init();
-		mono::init();
+		Sharp_Init();
 
 		// Pick a random port value
 		Com_RandomBytes( (byte*)&qport, sizeof(int) );
@@ -1662,7 +1662,7 @@ void Com_Shutdown (void)
 
 	MSG_shutdownHuffman();
 	
-	mono::term();
+	Sharp_Shutdown();
 	GPTP_Shutdown();
 /*
 	// Only used for testing changes to huffman frequency table when tuning.

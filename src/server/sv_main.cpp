@@ -1136,6 +1136,7 @@ void SV_Frame( int msec ) {
 		sv.time += frameMsec;
 
 		// let everything in the world think and move
+		SV_Sharp_Frame();
 		GVM_RunFrame( sv.time );
 	}
 

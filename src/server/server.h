@@ -482,3 +482,8 @@ qboolean SV_Netchan_Process( client_t *client, msg_t *msg );
 
 
 void SV_UpdateMinigameState( int minigame_index );
+
+void SV_Sharp_Init();
+void SV_Sharp_Shutdown();
+
+void SV_Sharp_Frame();

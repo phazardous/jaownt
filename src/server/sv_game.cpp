@@ -115,6 +115,7 @@ void SV_ShutdownGameProgs( void ) {
 	if ( !svs.gameStarted ) {
 		return;
 	}
+	SV_Sharp_Shutdown();
 	SV_UnbindGame();
 }
 
@@ -135,6 +136,7 @@ void SV_InitGameProgs( void ) {
 
 	svs.gameStarted = qtrue;
 	SV_BindGame();
+	SV_Sharp_Init();
 
 	SV_InitGame( qfalse );
 }

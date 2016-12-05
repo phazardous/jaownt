@@ -3,6 +3,9 @@ CMakeLists.txt
 cmake-build-*/
 waf*/
 *.kdev4
+*.csproj
+*.userprefs
+*.sln
 
 ### Hidden Files ###
 .*

@@ -1957,10 +1957,12 @@ void SV_UnbindGame( void ) {
 }
 
 void SV_RestartGame( void ) {
+	SV_Sharp_Shutdown();
 	GVM_ShutdownGame( qtrue );
 
 	gvm = VM_Restart( gvm );
 	SV_BindGame();
+	SV_Sharp_Init();
 	if ( !gvm ) {
 		svs.gameStarted = qfalse;
 		Com_Error( ERR_DROP, "VM_Restart on game failed" );

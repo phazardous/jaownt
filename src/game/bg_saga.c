@@ -1311,7 +1311,7 @@ void BG_SiegeParseTeamFile(const char *filename)
 
 			if (!bgSiegeTeams[bgNumSiegeTeams].classes[bgSiegeTeams[bgNumSiegeTeams].numClasses])
 			{
-				Com_Printf( "Invalid class specified: '%s'\n", parseBuf);
+				//Com_Printf( "Invalid class specified: '%s'\n", parseBuf);
 			}
 
 			bgSiegeTeams[bgNumSiegeTeams].numClasses++;
