@@ -272,7 +272,7 @@ def build(bld):
 		gen = 'sharpsv.dll',
 		name = 'sharpsv',
 		source = monolib_files,
-		install_path = os.path.join(top, 'install')
+		install_path = os.path.join(top, 'install', 'sharp')
 	)
 	
 	###

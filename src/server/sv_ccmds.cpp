@@ -2002,8 +2002,8 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand ("sv_exceptdel", SV_ExceptDel_f, "Removes a ban exception" );
 	Cmd_AddCommand ("sv_flushbans", SV_FlushBans_f, "Removes all bans and exceptions" );
 	Cmd_AddCommand ("gptptest", SV_TestGPTP, "Test the General Purpose Thread Pool" );
-	Cmd_AddCommand ("sv_sharp_reboot", SV_Cmd_SharpReboot, "Reboot the serverside sharp runtime" );
-	Cmd_AddCommand ("sv_sharp_load", SV_Cmd_SharpLoad, "Load a script manifest into the serverside sharp runtime" );
+	Cmd_AddCommand ("sharpsv_reboot", SV_Cmd_SharpReboot, "Reboot the serverside sharp runtime" );
+	Cmd_AddCommand ("sharpsv_load", SV_Cmd_SharpLoad, "Load a script manifest into the serverside sharp runtime" );
 }
 
 /*
