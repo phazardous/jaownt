@@ -11,6 +11,7 @@ typedef void * sharp_handle;
 typedef void * sharp_class;
 typedef void * sharp_method;
 typedef void * sharp_string;
+typedef void * sharp_array;
 
 sharp_handle Sharp_Create (char const * assemblyLocation);
 void Sharp_Destroy (sharp_handle);
@@ -24,5 +25,7 @@ void * Sharp_Invoke (sharp_handle, sharp_method, void * * arg, std::string & err
 
 sharp_string Sharp_Create_String(sharp_handle sh, char const *);
 std::string Sharp_Unbox_String(sharp_string);
+
+sharp_array Sharp_Create_Ptr_Array(sharp_handle sh, void * * elements, size_t count);
 
 #endif

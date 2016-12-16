@@ -126,3 +126,10 @@ std::string Sharp_Unbox_String(sharp_string strh) {
 	mono_free(nstr);
 	return str;
 }
+
+sharp_array Sharp_Create_Ptr_Array(sharp_handle sh, void * * elements, size_t count) {
+	MonoArray * arry = mono_array_new(reinterpret_cast<mono_scriptcon *>(sh)->domain, mono_get_intptr_class(), count);
+	for (size_t i = 0; i < count; i++)
+		mono_array_set(arry, void *, i, elements[i]);
+	return arry;
+}

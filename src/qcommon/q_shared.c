@@ -1317,19 +1317,26 @@ FIXME: make this buffer size safe someday
 #define	MAX_VA_STRING 8192
 #define MAX_VA_BUFFERS 5
 
+static thread_local char va_string[MAX_VA_BUFFERS][MAX_VA_STRING];	// in case va is called by nested functions
+static thread_local uint_fast8_t va_index = 0;
+
 char * QDECL va( const char *format, ... )
 {
 	va_list argptr;
-	static thread_local char string[MAX_VA_BUFFERS][MAX_VA_STRING];	// in case va is called by nested functions
-	static thread_local uint_fast8_t index = 0;
 	char * buf;
 
 	va_start( argptr, format );
-	buf = (char *)&string[index++];
-	if (index == MAX_VA_BUFFERS) index = 0;
+	buf = (char *)&va_string[va_index++];
+	if (va_index == MAX_VA_BUFFERS) va_index = 0;
 	Q_vsnprintf( buf, MAX_VA_STRING, format, argptr );
 	va_end( argptr );
 
+	return buf;
+}
+
+char * QDECL va_next() {
+	char * buf = (char *)&va_string[va_index++];
+	if (va_index == MAX_VA_BUFFERS) va_index = 0;
 	return buf;
 }
 

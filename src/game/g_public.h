@@ -198,6 +198,15 @@ typedef enum //# bSet_e
 	NUM_BSETS
 } bSet_t;
 
+typedef enum
+{
+	SHARPCMD_SPAWN,
+	SHARPCMD_USE,
+	SHARPCMD_DEATH,
+
+	NUM_SHARPCMDS
+} sharpCmd_t;
+
 #define	MAX_PARMS	16
 #define	MAX_PARM_STRING_LENGTH	MAX_QPATH//was 16, had to lengthen it so they could take a valid file path
 typedef struct parms_s {
@@ -374,6 +383,12 @@ typedef struct T_G_ICARUS_SOUNDINDEX_s {
 typedef struct T_G_ICARUS_GETSETIDFORSTRING_s {
 	char string[2048];
 } T_G_ICARUS_GETSETIDFORSTRING;
+
+typedef void * sharpsv_handle;
+typedef void * sharpsv_class;
+typedef void * sharpsv_method;
+typedef void * sharpsv_string;
+typedef void * sharpsv_array;
 
 typedef struct gameImport_s {
 	// misc
@@ -713,6 +728,18 @@ typedef struct gameImport_s {
 	void		(*G2API_CleanEntAttachments)			( void );
 	qboolean	(*G2API_OverrideServer)					( void *serverInstance );
 	void		(*G2API_GetSurfaceName)					( void *ghoul2, int surfNumber, int modelIndex, char *fillBuf );
+	
+	sharpsv_handle	(*Sharp_Create)						(char const * asmloc);
+	void			(*Sharp_Destroy)					(sharpsv_handle h);
+	sharpsv_class	(*Sharp_Resolve_Class)				(sharpsv_handle h, char const * name_space, char const * name);
+	sharpsv_method	(*Sharp_Resolve_Method)				(sharpsv_class ch, char const * name, int arg_c);
+	void			(*Sharp_Resolve_Internal)			(sharpsv_handle h, char const * name, void * call);
+	void			(*Sharp_Bind)						(sharpsv_handle h);
+	void *			(*Sharp_Invoke)						(sharpsv_handle h, sharpsv_method m, void * * arg, char * * err);
+	sharpsv_string	(*Sharp_Create_String)				(sharpsv_handle h, char const * str);
+	char *			(*Sharp_Unbox_String)				(sharpsv_string sstr);
+	sharpsv_array	(*Sharp_Create_Ptr_Array)			(sharpsv_handle h, void * * elements, size_t count);
+
 } gameImport_t;
 
 typedef struct gameExport_s {
@@ -756,6 +783,8 @@ typedef struct gameExport_s {
 	qboolean	(*NAV_EntIsRemovableUsable)			( int entNum );
 	void		(*NAV_FindCombatPointWaypoints)		( void );
 	int			(*BG_GetItemIndexByTag)				( int tag, int type );
+	// Serverside Sharp
+	
 } gameExport_t;
 
 

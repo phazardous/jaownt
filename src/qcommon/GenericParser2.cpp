@@ -190,7 +190,7 @@ CTextPool::~CTextPool(void)
 	Z_Free(mPool);
 }
 
-char *CTextPool::AllocText(char *text, bool addNULL, CTextPool **poolPtr)
+char *CTextPool::AllocText(char const *text, bool addNULL, CTextPool **poolPtr)
 {
 	int	length = strlen(text) + (addNULL ? 1 : 0);
 

@@ -1520,6 +1520,7 @@ G_Say
 
 static void G_SayTo( gentity_t *ent, gentity_t *other, int mode, int color, const char *name, const char *message, char *locMsg )
 {
+	
 	if (!other) {
 		return;
 	}
@@ -1530,6 +1531,10 @@ static void G_SayTo( gentity_t *ent, gentity_t *other, int mode, int color, cons
 		return;
 	}
 	if ( other->client->pers.connected != CON_CONNECTED ) {
+		return;
+	}
+	if (!ent) {
+		trap->SendServerCommand( other-g_entities, va("chat \"%s%c%c%s\"", name, Q_COLOR_ESCAPE, color, message));
 		return;
 	}
 	if ( mode == SAY_TEAM  && !OnSameTeam(ent, other) ) {
@@ -1568,7 +1573,7 @@ static void G_SayTo( gentity_t *ent, gentity_t *other, int mode, int color, cons
 	}
 }
 
-void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) {
+void G_Say( gentity_t *ent, gentity_t *target, int mode, const char * chatText, char const * name_override ) {
 	int			j;
 	gentity_t	*other;
 	int			color;
@@ -1577,10 +1582,14 @@ void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) 
 	char		text[MAX_SAY_TEXT];
 	char		location[64];
 	char		*locMsg = NULL;
+	
+	assert (ent || name_override); // ent can only be NULL if we have a name to use
 
 	if ( level.gametype < GT_TEAM && mode == SAY_TEAM ) {
 		mode = SAY_ALL;
 	}
+	
+	assert (ent || mode != SAY_TEAM); // ent cannot be NULL if team chat, as no ent to get team from
 
 	Q_strncpyz( text, chatText, sizeof(text) );
 
@@ -1589,37 +1598,22 @@ void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) 
 	switch ( mode ) {
 	default:
 	case SAY_ALL:
-		G_LogPrintf( "say: %s: %s\n", ent->client->pers.netname, text );
-		Com_sprintf (name, sizeof(name), "%s%c%c"EC": ", ent->client->pers.netname, Q_COLOR_ESCAPE, COLOR_WHITE );
+		Com_sprintf (name, sizeof(name), "%s%c%c"EC": ", name_override ? name_override : ent->client->pers.netname, Q_COLOR_ESCAPE, COLOR_WHITE );
+		G_LogPrintf( "say: %s: %s\n", name_override ? name_override : ent->client->pers.netname, text );
+		if (ent) G_Sharp_Event_Chat(ent->playerState->clientNum, text);
 		color = COLOR_GREEN;
 		break;
 	case SAY_TEAM:
-		G_LogPrintf( "sayteam: %s: %s\n", ent->client->pers.netname, text );
-		if (Team_GetLocationMsg(ent, location, sizeof(location)))
-		{
-			Com_sprintf (name, sizeof(name), EC"(%s%c%c"EC")"EC": ",
-				ent->client->pers.netname, Q_COLOR_ESCAPE, COLOR_WHITE );
-			locMsg = location;
-		}
-		else
-		{
-			Com_sprintf (name, sizeof(name), EC"(%s%c%c"EC")"EC": ",
-				ent->client->pers.netname, Q_COLOR_ESCAPE, COLOR_WHITE );
-		}
+		Com_sprintf (name, sizeof(name), EC"(%s%c%c"EC")"EC": ", name_override ? name_override : ent->client->pers.netname, Q_COLOR_ESCAPE, COLOR_WHITE );
+		G_LogPrintf( "sayteam: %s: %s\n", name_override ? name_override : ent->client->pers.netname, text );
+		if (Team_GetLocationMsg(ent, location, sizeof(location))) locMsg = location;
 		color = COLOR_CYAN;
 		break;
 	case SAY_TELL:
-		if (target && target->inuse && target->client && level.gametype >= GT_TEAM &&
+		Com_sprintf (name, sizeof(name), EC"[%s%c%c"EC"]"EC": ", name_override ? name_override : ent->client->pers.netname, Q_COLOR_ESCAPE, COLOR_WHITE );
+		if (ent && target && target->inuse && target->client && level.gametype >= GT_TEAM &&
 			target->client->sess.sessionTeam == ent->client->sess.sessionTeam &&
-			Team_GetLocationMsg(ent, location, sizeof(location)))
-		{
-			Com_sprintf (name, sizeof(name), EC"[%s%c%c"EC"]"EC": ", ent->client->pers.netname, Q_COLOR_ESCAPE, COLOR_WHITE );
-			locMsg = location;
-		}
-		else
-		{
-			Com_sprintf (name, sizeof(name), EC"[%s%c%c"EC"]"EC": ", ent->client->pers.netname, Q_COLOR_ESCAPE, COLOR_WHITE );
-		}
+			Team_GetLocationMsg(ent, location, sizeof(location))) locMsg = location;
 		color = COLOR_MAGENTA;
 		break;
 	}
@@ -1641,7 +1635,6 @@ void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) 
 	}
 }
 
-
 /*
 ==================
 Cmd_Say_f
@@ -1660,7 +1653,7 @@ static void Cmd_Say_f( gentity_t *ent ) {
 		G_SecurityLogPrintf( "Cmd_Say_f from %d (%s) has been truncated: %s\n", ent->s.number, ent->client->pers.netname, p );
 	}
 
-	G_Say( ent, NULL, SAY_ALL, p );
+	G_Say( ent, NULL, SAY_ALL, p, NULL );
 }
 
 /*
@@ -1681,7 +1674,7 @@ static void Cmd_SayTeam_f( gentity_t *ent ) {
 		G_SecurityLogPrintf( "Cmd_SayTeam_f from %d (%s) has been truncated: %s\n", ent->s.number, ent->client->pers.netname, p );
 	}
 
-	G_Say( ent, NULL, (level.gametype>=GT_TEAM) ? SAY_TEAM : SAY_ALL, p );
+	G_Say( ent, NULL, (level.gametype>=GT_TEAM) ? SAY_TEAM : SAY_ALL, p, NULL );
 }
 
 /*
@@ -1719,11 +1712,11 @@ static void Cmd_Tell_f( gentity_t *ent ) {
 	}
 
 	G_LogPrintf( "tell: %s to %s: %s\n", ent->client->pers.netname, target->client->pers.netname, p );
-	G_Say( ent, target, SAY_TELL, p );
+	G_Say( ent, target, SAY_TELL, p, NULL );
 	// don't tell to the player self if it was already directed to this player
 	// also don't send the chat back to a bot
 	if ( ent != target && !(ent->r.svFlags & SVF_BOT)) {
-		G_Say( ent, ent, SAY_TELL, p );
+		G_Say( ent, ent, SAY_TELL, p, NULL );
 	}
 }
 
@@ -1828,11 +1821,11 @@ void Cmd_GameCommand_f( gentity_t *ent ) {
 		return;
 
 	G_LogPrintf( "tell: %s to %s: %s\n", ent->client->pers.netname, target->client->pers.netname, gc_orders[order] );
-	G_Say( ent, target, SAY_TELL, gc_orders[order] );
+	G_Say( ent, target, SAY_TELL, gc_orders[order], NULL );
 	// don't tell to the player self if it was already directed to this player
 	// also don't send the chat back to a bot
 	if ( ent != target && !(ent->r.svFlags & SVF_BOT) )
-		G_Say( ent, ent, SAY_TELL, gc_orders[order] );
+		G_Say( ent, ent, SAY_TELL, gc_orders[order], NULL );
 }
 
 /*
@@ -3585,6 +3578,20 @@ static void Cmd_Tele_f( gentity_t * ent ) {
 	}
 }
 
+static void Cmd_SharpG_Load_f() {
+	char script [MAX_FILEPATH];
+	for (int i = 1; i < trap->Argc(); i++) {
+		trap->Argv(i, script, MAX_FILEPATH);
+		G_Sharp_Load(script);
+	}
+}
+
+static void Cmd_SharpG_Reboot_f() {
+	G_Sharp_Shutdown();
+	G_Sharp_Init();
+	G_Sharp_Load_Map_Script();
+}
+
 /*
 =================
 ClientCommand
@@ -3636,6 +3643,8 @@ command_t commands[] = {
 	{ "say_team",			Cmd_SayTeam_f,				0 },
 	{ "score",				Cmd_Score_f,				0 },
 	{ "setviewpos",			Cmd_SetViewpos_f,			CMD_CHEAT|CMD_NOINTERMISSION },
+	{ "sharpg_load",		Cmd_SharpG_Load_f,			CMD_CHEAT },
+	{ "sharpg_reboot",		Cmd_SharpG_Reboot_f,		CMD_CHEAT },
 	{ "siegeclass",			Cmd_SiegeClass_f,			CMD_NOINTERMISSION },
 	{ "team",				Cmd_Team_f,					CMD_NOINTERMISSION },
 //	{ "teamtask",			Cmd_TeamTask_f,				CMD_NOINTERMISSION },

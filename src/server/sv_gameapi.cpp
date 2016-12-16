@@ -30,6 +30,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "icarus/GameInterface.h"
 #include "qcommon/timing.h"
 #include "NPCNav/navigator.h"
+#include "sharp/sharp_public.hpp"
 
 botlib_export_t	*botlib_export;
 
@@ -281,13 +282,6 @@ int GVM_BG_GetItemIndexByTag( int tag, int type ) {
 	return ge->BG_GetItemIndexByTag( tag, type );
 }
 
-//
-// game syscalls
-//	only used by legacy mods!
-//
-
-// legacy syscall
-
 siegePers_t sv_siegePersData = {qfalse, 0, 0};
 
 extern float g_svCullDist;
@@ -443,38 +437,6 @@ static void SV_GetUsercmd( int clientNum, usercmd_t *cmd ) {
 		return;
 	}
 	*cmd = svs.clients[clientNum].lastUsercmd;
-}
-
-static sharedEntity_t gLocalModifier;
-static sharedEntity_t *ConvertedEntity( sharedEntity_t *ent ) { //Return an entity with the memory shifted around to allow reading/modifying VM memory
-	int i = 0;
-
-	assert(ent);
-
-	gLocalModifier.s = ent->s;
-	gLocalModifier.r = ent->r;
-	while (i < NUM_TIDS)
-	{
-		gLocalModifier.taskID[i] = ent->taskID[i];
-		i++;
-	}
-	i = 0;
-	gLocalModifier.parms = (parms_t *)VM_ArgPtr((intptr_t)ent->parms);
-	while (i < NUM_BSETS)
-	{
-		gLocalModifier.behaviorSet[i] = (char *)VM_ArgPtr((intptr_t)ent->behaviorSet[i]);
-		i++;
-	}
-	i = 0;
-	gLocalModifier.script_targetname = (char *)VM_ArgPtr((intptr_t)ent->script_targetname);
-	gLocalModifier.delayScriptTime = ent->delayScriptTime;
-	gLocalModifier.fullName = (char *)VM_ArgPtr((intptr_t)ent->fullName);
-	gLocalModifier.targetname = (char *)VM_ArgPtr((intptr_t)ent->targetname);
-	gLocalModifier.classname = (char *)VM_ArgPtr((intptr_t)ent->classname);
-
-	gLocalModifier.ghoul2 = ent->ghoul2;
-
-	return &gLocalModifier;
 }
 
 static const char *SV_SetActiveSubBSP( int index ) {
@@ -1598,6 +1560,55 @@ static void SV_G2API_GetSurfaceName( void *ghoul2, int surfNumber, int modelInde
 	strcpy( fillBuf, tmp );
 }
 
+static sharpsv_handle SV_Sharp_Create(char const * asmloc) {
+	return Sharp_Create(asmloc);
+}
+
+static void SV_Sharp_Destroy (sharpsv_handle h) {
+	Sharp_Destroy(h);
+}
+
+static sharpsv_class SV_Sharp_Resolve_Class (sharpsv_handle h, char const * name_space, char const * name) {
+	return Sharp_Resolve_Class(h, name_space, name);
+}
+
+static sharpsv_method SV_Sharp_Resolve_Method (sharpsv_class ch, char const * name, int arg_c) {
+	return Sharp_Resolve_Method(ch, name, arg_c);
+}
+
+static void SV_Sharp_Resolve_Internal(sharpsv_handle h, char const * name, void * call) {
+	Sharp_Resolve_Internal(h, name, call);
+}
+
+static void SV_Sharp_Bind(sharpsv_handle h) {
+	Sharp_Bind(h);
+}
+
+static void * SV_Sharp_Invoke (sharpsv_handle h, sharpsv_method m, void * * arg, char * * err) {
+	std::string err_str;
+	void * res = Sharp_Invoke(h, m, arg, err_str);
+	if (err_str.empty()) {
+		*err = nullptr;
+	} else {
+		*err = va("%s", err_str.c_str());
+	}
+	return res;
+}
+
+static sharpsv_string SV_Sharp_Create_String(sharpsv_handle h, char const * str) {
+	return Sharp_Create_String(h, str);
+}
+
+static char * SV_Sharp_Unbox_String(sharpsv_string sstr) {
+	std::string istr = Sharp_Unbox_String(sstr);
+	return va("%s", istr.c_str());
+}
+
+static sharpsv_string SV_Sharp_Create_Ptr_Array(sharpsv_handle h, void * * elements, size_t count) {
+	return Sharp_Create_Ptr_Array(h, elements, count);
+}
+
+
 static void GVM_Cvar_Set( const char *var_name, const char *value ) {
 	Cvar_VM_Set( var_name, value, VM_GAME );
 }
@@ -1934,6 +1945,16 @@ void SV_BindGame( void ) {
 		gi.G2API_CleanEntAttachments			= SV_G2API_CleanEntAttachments;
 		gi.G2API_OverrideServer					= SV_G2API_OverrideServer;
 		gi.G2API_GetSurfaceName					= SV_G2API_GetSurfaceName;
+		gi.Sharp_Create							= SV_Sharp_Create;
+		gi.Sharp_Destroy						= SV_Sharp_Destroy;
+		gi.Sharp_Resolve_Class					= SV_Sharp_Resolve_Class;
+		gi.Sharp_Resolve_Method					= SV_Sharp_Resolve_Method;
+		gi.Sharp_Resolve_Internal				= SV_Sharp_Resolve_Internal;
+		gi.Sharp_Bind							= SV_Sharp_Bind;
+		gi.Sharp_Invoke							= SV_Sharp_Invoke;
+		gi.Sharp_Create_String					= SV_Sharp_Create_String;
+		gi.Sharp_Unbox_String					= SV_Sharp_Unbox_String;
+		gi.Sharp_Create_Ptr_Array				= SV_Sharp_Create_Ptr_Array;
 
 		GetGameAPI = (GetGameAPI_t)gvm->GetModuleAPI;
 		ret = GetGameAPI( GAME_API_VERSION, &gi );

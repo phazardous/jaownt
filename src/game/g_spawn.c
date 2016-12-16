@@ -133,6 +133,7 @@ field_t fields[] = {
 	{ "chunksize",				FOFS( mass ),							F_FLOAT },//for func_breakables
 	{ "classname",				FOFS( classname ),						F_STRING },
 	{ "closetarget",			FOFS( closetarget ),					F_STRING },//for doors
+	{ "cmd",					FOFS( script_targetname ),				F_STRING },//scripts look for this when "affecting"
 	{ "count",					FOFS( count ),							F_INT },
 	{ "deathscript",			FOFS( behaviorSet[BSET_DEATH] ),		F_STRING },//name of script to run
 	{ "delay",					FOFS( delay ),							F_INT },
@@ -187,6 +188,10 @@ field_t fields[] = {
 	{ "roffname",				FOFS( roffname ),						F_STRING },
 	{ "rofftarget",				FOFS( rofftarget ),						F_STRING },
 	{ "script_targetname",		FOFS( script_targetname ),				F_STRING },//scripts look for this when "affecting"
+	{ "sharpcmd_death",			FOFS( sharpCmd[SHARPCMD_DEATH] ),		F_STRING },
+	{ "sharpcmd_spawn",			FOFS( sharpCmd[SHARPCMD_SPAWN] ),		F_STRING },
+	{ "sharpcmd_use",			FOFS( sharpCmd[SHARPCMD_USE] ),			F_STRING },
+	{ "sharptags",				FOFS( sharpTags ),						F_STRING },
 	{ "soundset",				FOFS( soundSet ),						F_STRING },
 	{ "spawnflags",				FOFS( spawnflags ),						F_INT },
 	{ "spawnscript",			FOFS( behaviorSet[BSET_SPAWN] ),		F_STRING },//name of script to run
@@ -493,6 +498,24 @@ void SP_gametype_item ( gentity_t* ent )
 
 void SP_emplaced_gun( gentity_t *ent );
 
+
+
+/*QUAKED sharp_cmd (0 .5 1) (-4 -4 -4) (4 4 4)
+===========DESCRIPTION============================
+Using this entity will send a cmd to the serverside sharp runtime.
+===========KEYS&VALUES============================
+cmd - the cmd string to send.
+*/
+static void Use_Sharp_Cmd(gentity_t * self, gentity_t * other, gentity_t * activator) {
+	self->activator = activator;
+	self->other = other;
+	G_Sharp_Event_Cmd(self, self->script_targetname);
+}
+
+static void SP_sharp_cmd(gentity_t * ent) {
+	ent->use = Use_Sharp_Cmd;
+}
+
 spawn_t	spawns[] = {
 	{ "emplaced_gun",						SP_emplaced_gun },
 	{ "func_bobbing",						SP_func_bobbing },
@@ -635,6 +658,7 @@ spawn_t	spawns[] = {
 	{ "point_combat",						SP_point_combat },
 	{ "ref_tag",							SP_reference_tag },
 	{ "ref_tag_huge",						SP_reference_tag },
+	{ "sharp_cmd",							SP_sharp_cmd },
 	{ "shooter_blaster",					SP_shooter_blaster },
 	{ "target_activate",					SP_target_activate },
 	{ "target_counter",						SP_target_counter },
@@ -960,6 +984,8 @@ void G_SpawnGEntityFromSpawnVars( qboolean inSubBSP ) {
 			}
 		}
 	}
+	
+	G_SharpCmd(ent, SHARPCMD_SPAWN);
 }
 
 /*
@@ -1449,6 +1475,9 @@ void SP_worldspawn( void )
 	trap->SetConfigstring( CS_GAME_VERSION, GAME_VERSION );
 
 	trap->SetConfigstring( CS_LEVEL_START_TIME, va("%i", level.startTime ) );
+	
+	G_SpawnString( "sharp", "", &text );
+	strcpy(level.sharpscript, text);
 
 	G_SpawnString( "music", "", &text );
 	trap->SetConfigstring( CS_MUSIC, text );

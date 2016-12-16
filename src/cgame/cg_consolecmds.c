@@ -353,6 +353,8 @@ static const char *gcmds[] = {
 	"say",
 	"say_team",
 	"setviewpos",
+	"sharpg_load",
+	"sharpg_reboot"
 	"siegeclass",
 	"stats",
 	//"stopfollow",

@@ -356,7 +356,7 @@ struct gentity_s {
 	int			bounceCount;
 	qboolean	alt_fire;
 
-	gentity_t	*chain;
+	gentity_t	*other;
 	gentity_t	*enemy;
 	gentity_t	*lastEnemy;
 	gentity_t	*activator;
@@ -404,6 +404,10 @@ struct gentity_s {
 
 	// OpenJK add
 	int			useDebounceTime;	// for cultist_destroyer
+	
+	// Sharp
+	char *		sharpCmd[NUM_SHARPCMDS];
+	char *		sharpTags;
 };
 
 #define DAMAGEREDIRECT_HEAD		1
@@ -1008,6 +1012,7 @@ typedef struct level_locals_s {
 	gametype_t	gametype;
 	char		mapname[MAX_QPATH];
 	char		rawmapname[MAX_QPATH];
+	char		sharpscript[MAX_QPATH];
 } level_locals_t;
 
 
@@ -1035,6 +1040,7 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent);
 int G_ItemUsable(playerState_t *ps, int forcedUse);
 void Cmd_ToggleSaber_f(gentity_t *ent);
 void Cmd_EngageDuel_f(gentity_t *ent);
+void G_Say( gentity_t *ent, gentity_t *target, int mode, const char * chatText, char const * name_override );
 
 //
 // g_items.c
@@ -1526,5 +1532,22 @@ void Svcmd_ToggleAllowVote_f( void );
 #undef XCVAR_PROTO
 void G_RegisterCvars( void );
 void G_UpdateCvars( void );
+
+// g_sharp.c
+typedef int sharpg_handle;
+
+void G_Sharp_Init ();
+void G_Sharp_Shutdown ();
+void G_Sharp_Load_Map_Script ();
+
+void G_Sharp_Begin ();
+sharpg_handle G_Sharp_Load (char const * manifest);
+void G_Sharp_Close (int manifest_id);
+void G_Sharp_Event_Shutdown ();
+void G_Sharp_Event_Frame ();
+void G_Sharp_Event_Chat (int cli_num, char const * msg);
+void G_Sharp_Event_Cmd (gentity_t * ent, char const * cmd);
+
+void G_SharpCmd(gentity_t * ent, sharpCmd_t cmde);
 
 extern gameImport_t *trap;

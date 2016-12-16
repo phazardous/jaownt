@@ -419,7 +419,7 @@ static void *Sys_LoadDllFromPaths( const char *filename, const char *gamedir, co
 			if ( !libDir[0] )
 				continue;
 
-			fn = FS_BuildOSPath( libDir, OPENJKGAME, filename );
+			fn = FS_BuildOSPath( libDir, JAOWNTGAME, filename );
 			libHandle = Sys_LoadLibrary( fn );
 			if ( libHandle )
 				return libHandle;

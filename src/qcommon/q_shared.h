@@ -36,7 +36,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define HOMEPATH_NAME_MACOSX HOMEPATH_NAME_WIN
 
 #define	BASEGAME "base"
-#define OPENJKGAME "jaownt"
+#define JAOWNTGAME "jaowntbase"
 
 //NOTENOTE: Only change this to re-point ICARUS to a new script directory
 #define Q3_SCRIPT_DIR	"scripts"
@@ -997,6 +997,7 @@ void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up );
 //int	PlaneTypeForNormal (vec3_t normal);
 
 void MatrixMultiply(float in1[3][3], float in2[3][3], float out[3][3]);
+void Matrix4Multiply(float in1[4][4], float in2[4][4], float out[4][4]);
 void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up);
 void PerpendicularVector( vec3_t dst, const vec3_t src );
 void NormalToLatLong( const vec3_t normal, byte bytes[2] ); //rwwRMG - added
@@ -1143,7 +1144,8 @@ void	Swap_Init (void);
 
 int FloatAsInt( float f );
 
-char	* QDECL va(const char *format, ...);
+char * QDECL va(const char *format, ...);
+char * QDECL va_next();
 
 #define TRUNCATE_LENGTH	64
 void Com_TruncateLongString( char *buffer, const char *s );

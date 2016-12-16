@@ -1941,18 +1941,6 @@ static void SV_TestGPTP() {
 	}
 	Com_Printf("GPTP Test Results: %u\n", res);
 }
-
-static void SV_Cmd_SharpReboot() {
-	SV_Sharp_Shutdown();
-	SV_Sharp_Init();
-}
-
-static void SV_Cmd_SharpLoad() {
-	for (int i = 1; i < Cmd_Argc(); i++) {
-		SV_Sharp_Load(Cmd_Argv(i));
-	}
-}
-
 /*
 ==================
 SV_AddOperatorCommands
@@ -2002,8 +1990,6 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand ("sv_exceptdel", SV_ExceptDel_f, "Removes a ban exception" );
 	Cmd_AddCommand ("sv_flushbans", SV_FlushBans_f, "Removes all bans and exceptions" );
 	Cmd_AddCommand ("gptptest", SV_TestGPTP, "Test the General Purpose Thread Pool" );
-	Cmd_AddCommand ("sharpsv_reboot", SV_Cmd_SharpReboot, "Reboot the serverside sharp runtime" );
-	Cmd_AddCommand ("sharpsv_load", SV_Cmd_SharpLoad, "Load a script manifest into the serverside sharp runtime" );
 }
 
 /*

@@ -1053,8 +1053,6 @@ happen before SV_Frame is called
 void SV_Frame( int msec ) {
 	int		frameMsec;
 	int		startTime;
-	
-	SV_Sharp_Begin();
 
 	// the menu kills the server with this cvar
 	if ( sv_killserver->integer ) {
@@ -1138,7 +1136,6 @@ void SV_Frame( int msec ) {
 		sv.time += frameMsec;
 
 		// let everything in the world think and move
-		SV_Sharp_Frame();
 		GVM_RunFrame( sv.time );
 	}
 

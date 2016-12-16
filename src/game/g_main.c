@@ -174,6 +174,10 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	vmCvar_t	mapname;
 	vmCvar_t	ckSum;
 	char serverinfo[MAX_INFO_STRING] = {0};
+	
+	trap->Print ("------- Game Initialization -------\n");
+	trap->Print ("gamename: %s\n", GAMEVERSION);
+	trap->Print ("gamedate: %s\n", __DATE__);
 
 	//Init RMG to 0, it will be autoset to 1 if there is terrain on the level.
 	trap->Cvar_Set("RMG", "0");
@@ -181,6 +185,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	//Clean up any client-server ghoul2 instance attachments that may still exist exe-side
 	trap->G2API_CleanEntAttachments();
+	
+	G_Sharp_Init();
 	
 	BG_InitMinigames();
 
@@ -192,10 +198,6 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	//Load external vehicle data
 	BG_VehicleLoadParms();
-
-	trap->Print ("------- Game Initialization -------\n");
-	trap->Print ("gamename: %s\n", GAMEVERSION);
-	trap->Print ("gamedate: %s\n", __DATE__);
 
 	srand( randomSeed );
 
@@ -344,6 +346,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	trap->SetConfigstring ( CS_CLIENT_DUELWINNER, va("-1") );
 
 	SaveRegisteredItems();
+	
+	G_Sharp_Load_Map_Script();
 
 	//trap->Print ("-----------------------------------\n");
 
@@ -439,6 +443,8 @@ void G_ShutdownGame( int restart ) {
 	gentity_t *ent;
 
 //	trap->Print ("==== ShutdownGame ====\n");
+	
+	G_Sharp_Shutdown();
 
 	G_CleanAllFakeClients(); //get rid of dynamically allocated fake client structs.
 	
@@ -2925,6 +2931,8 @@ void G_RunFrame( int levelTime ) {
 	void		*timer_GameChecks;
 	void		*timer_Queues;
 #endif
+	
+	
 
 	if (level.gametype == GT_SIEGE &&
 		g_siegeRespawn.integer &&
@@ -3057,7 +3065,8 @@ void G_RunFrame( int levelTime ) {
 	// get any cvar changes
 	G_UpdateCvars();
 
-
+	G_Sharp_Begin();
+	G_Sharp_Event_Frame();
 
 #ifdef _G_FRAME_PERFANAL
 	trap->PrecisionTimer_Start(&timer_ItemRun);

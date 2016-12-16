@@ -563,7 +563,7 @@ issues.
 #define	MAX_FILE_HANDLES	64
 
 #ifdef DEDICATED
-#	define Q3CONFIG_CFG PRODUCT_NAME "_server.cfg"
+#	define Q3CONFIG_CFG PRODUCT_NAME "ded.cfg"
 #else
 #	define Q3CONFIG_CFG PRODUCT_NAME ".cfg"
 #endif

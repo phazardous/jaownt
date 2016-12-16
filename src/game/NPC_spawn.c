@@ -1627,6 +1627,12 @@ gentity_t *NPC_Spawn_Do( gentity_t *ent )
 			newent->behaviorSet[index] = ent->behaviorSet[index];
 		}
 	}
+	
+	for (index = 0; index < NUM_SHARPCMDS; index++) {
+		newent->sharpCmd[index] = ent->sharpCmd[index];
+	}
+	
+	newent->sharpTags = ent->sharpTags;
 
 	newent->classname = "NPC";
 	newent->NPC_type = ent->NPC_type;

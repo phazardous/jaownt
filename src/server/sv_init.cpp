@@ -1012,8 +1012,6 @@ void SV_Init (void) {
 #ifdef DEDICATED
 	SV_InitRef();
 #endif
-	
-	SV_Sharp_Init();
 }
 
 
@@ -1059,7 +1057,6 @@ before Sys_Quit or Sys_Error
 */
 void SV_Shutdown( char *finalmsg )
 {
-	SV_Sharp_Shutdown();
 	
 	if ( !com_sv_running || !com_sv_running->integer )
 	{

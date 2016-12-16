@@ -565,11 +565,11 @@ void GlobalUse(gentity_t *self, gentity_t *other, gentity_t *activator)
 		return;
 	}
 
-	if (!self->use)
-	{
-		return;
-	}
-	self->use(self, other, activator);
+	if (self->use) self->use(self, other, activator);
+	
+	self->activator = activator;
+	self->other = other;
+ 	G_SharpCmd(self, SHARPCMD_USE);
 }
 
 void G_UseTargets2( gentity_t *ent, gentity_t *activator, const char *string ) {
@@ -594,9 +594,7 @@ void G_UseTargets2( gentity_t *ent, gentity_t *activator, const char *string ) {
 		if ( t == ent ) {
 			trap->Print ("WARNING: Entity used itself.\n");
 		} else {
-			if ( t->use ) {
-				GlobalUse(t, ent, activator);
-			}
+			GlobalUse(t, ent, activator);
 		}
 		if ( !ent->inuse ) {
 			trap->Print("entity was removed while using targets\n");
@@ -1431,7 +1429,8 @@ Returns whether or not the targeted entity is useable
 */
 qboolean ValidUseTarget( gentity_t *ent )
 {
-	if ( !ent->use )
+	
+	if ( !ent->use && !(ent->sharpCmd[SHARPCMD_USE] && ent->sharpCmd[SHARPCMD_USE][0]) )
 	{
 		return qfalse;
 	}
@@ -1440,7 +1439,7 @@ qboolean ValidUseTarget( gentity_t *ent )
 	{//set by target_deactivate
 		return qfalse;
 	}
-
+	
 	if ( !(ent->r.svFlags & SVF_PLAYER_USABLE) )
 	{//Check for flag that denotes BUTTON_USE useability
 		return qfalse;

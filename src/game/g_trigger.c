@@ -112,6 +112,9 @@ void multi_trigger_run( gentity_t *ent )
 	{	// mark the trigger as being touched by the player
 		ent->aimDebounceTime = level.time;
 	}
+	
+	
+	G_SharpCmd(ent, SHARPCMD_USE);
 }
 
 //determine if the class given is listed in the string using the | formatting
@@ -1148,7 +1151,7 @@ void SP_trigger_push( gentity_t *self ) {
 
 	if ( self->spawnflags & 4 )
 	{//linear
-		self->speed = 1000;
+		//self->speed = 1000;
 	}
 
 	self->think = AimAtTarget;

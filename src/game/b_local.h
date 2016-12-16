@@ -186,7 +186,10 @@ extern visibility_t NPC_CheckVisibility ( gentity_t *ent, int flags );
 extern qboolean InVisrange ( gentity_t *ent );
 
 //NPC_spawn
+gNPC_t *New_NPC_t(int entNum);
 extern void NPC_Spawn ( gentity_t *ent, gentity_t *other, gentity_t *activator );
+void NPC_Begin (gentity_t *ent);
+void NPC_DefaultScriptFlags( gentity_t *ent );
 
 //NPC_stats
 extern int NPC_ReactionTime ( void );
