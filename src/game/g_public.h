@@ -384,12 +384,6 @@ typedef struct T_G_ICARUS_GETSETIDFORSTRING_s {
 	char string[2048];
 } T_G_ICARUS_GETSETIDFORSTRING;
 
-typedef void * sharpsv_handle;
-typedef void * sharpsv_class;
-typedef void * sharpsv_method;
-typedef void * sharpsv_string;
-typedef void * sharpsv_array;
-
 typedef struct gameImport_s {
 	// misc
 	void		(*Print)								( const char *msg, ... );
@@ -729,16 +723,23 @@ typedef struct gameImport_s {
 	qboolean	(*G2API_OverrideServer)					( void *serverInstance );
 	void		(*G2API_GetSurfaceName)					( void *ghoul2, int surfNumber, int modelIndex, char *fillBuf );
 	
-	sharpsv_handle	(*Sharp_Create)						(char const * asmloc);
-	void			(*Sharp_Destroy)					(sharpsv_handle h);
-	sharpsv_class	(*Sharp_Resolve_Class)				(sharpsv_handle h, char const * name_space, char const * name);
-	sharpsv_method	(*Sharp_Resolve_Method)				(sharpsv_class ch, char const * name, int arg_c);
-	void			(*Sharp_Resolve_Internal)			(sharpsv_handle h, char const * name, void * call);
-	void			(*Sharp_Bind)						(sharpsv_handle h);
-	void *			(*Sharp_Invoke)						(sharpsv_handle h, sharpsv_method m, void * * arg, char * * err);
-	sharpsv_string	(*Sharp_Create_String)				(sharpsv_handle h, char const * str);
-	char *			(*Sharp_Unbox_String)				(sharpsv_string sstr);
-	sharpsv_array	(*Sharp_Create_Ptr_Array)			(sharpsv_handle h, void * * elements, size_t count);
+	sharp_handle	(*Sharp_Create)						(char const * asmloc);
+	void			(*Sharp_Destroy)					(sharp_handle h);
+	sharp_class		(*Sharp_Resolve_Class)				(sharp_handle h, char const * name_space, char const * name);
+	sharp_method	(*Sharp_Resolve_Method)				(sharp_class ch, char const * name, int arg_c);
+	void			(*Sharp_Resolve_Internal)			(sharp_handle h, char const * name, void * call);
+	void			(*Sharp_Bind)						(sharp_handle h);
+	void *			(*Sharp_Invoke)						(sharp_handle h, sharp_method m, void * * arg, char * * err);
+	sharp_string	(*Sharp_Create_String)				(sharp_handle h, char const * str);
+	char *			(*Sharp_Unbox_String)				(sharp_string sstr);
+	sharp_array		(*Sharp_Create_Ptr_Array)			(sharp_handle h, void * * elements, size_t count);
+	
+	phys_world_t * 	(*Phys_World_Create) 				( void );
+	void 			(*Phys_World_Destroy)				( phys_world_t * );
+	void			(*Phys_World_Advance)				( phys_world_t *, int time );
+	phys_object_t * (*Phys_Object_Create_From_Obj)		( phys_world_t * world, char const * path, vec3_t pos, float mass );
+	void 			(*Phys_Object_Get_Transform)		( phys_object_t *, phys_interactor_t * );
+	void 			(*Phys_Object_Set_Transform)		( phys_object_t *, phys_interactor_t const * );
 
 } gameImport_t;
 

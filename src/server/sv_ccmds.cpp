@@ -36,7 +36,7 @@ These commands can only be entered from stdin or by a remote operator datagram
 ===============================================================================
 */
 
-const char *SV_GetStringEdString(char *refSection, char *refName)
+const char *SV_GetStringEdString(char const * refSection, char const *refName)
 {
 	//Well, it would've been lovely doing it the above way, but it would mean mixing
 	//languages for the client depending on what the server is. So we'll mark this as
@@ -1917,6 +1917,8 @@ static void SV_CompleteMapName( char *args, int argNum ) {
 	if ( argNum == 2 )
 		Field_CompleteFilename( "maps", "bsp", qtrue, qfalse );
 }
+
+//===========================================================
 
 #include <thread>
 

@@ -7,12 +7,6 @@
 void Sharp_Init();
 void Sharp_Shutdown();
 
-typedef void * sharp_handle;
-typedef void * sharp_class;
-typedef void * sharp_method;
-typedef void * sharp_string;
-typedef void * sharp_array;
-
 sharp_handle Sharp_Create (char const * assemblyLocation);
 void Sharp_Destroy (sharp_handle);
 

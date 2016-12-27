@@ -408,6 +408,9 @@ struct gentity_s {
 	// Sharp
 	char *		sharpCmd[NUM_SHARPCMDS];
 	char *		sharpTags;
+	
+	// Sharp
+	phys_object_t * phys;
 };
 
 #define DAMAGEREDIRECT_HEAD		1
@@ -1549,5 +1552,13 @@ void G_Sharp_Event_Chat (int cli_num, char const * msg);
 void G_Sharp_Event_Cmd (gentity_t * ent, char const * cmd);
 
 void G_SharpCmd(gentity_t * ent, sharpCmd_t cmde);
+
+// g_phys.c
+void G_Phys_Init ();
+void G_Phys_Shutdown ();
+void G_Phys_Frame ();
+void G_Phys_UpdateEnt(gentity_t * ent);
+
+void G_TEST_PhysTestEnt();
 
 extern gameImport_t *trap;

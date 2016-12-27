@@ -3042,7 +3042,7 @@ static void FS_AddGameDirectory( const char *path, const char *dir ) {
 FS_idPak
 ================
 */
-qboolean FS_idPak( char *pak, char *base ) {
+qboolean FS_idPak( char const *pak, char const *base ) {
 	int i;
 
 	for (i = 0; i < NUM_ID_PAKS; i++) {

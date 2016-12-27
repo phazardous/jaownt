@@ -76,6 +76,7 @@ def configure(ctx):
 			ctx.check(features='c cprogram', lib='winmm', uselib_store='WMM')
 			ctx.check_cfg(path='bash sdl2-config', args='--cflags --libs', package='', uselib_store='SDL')
 	ctx.check_cfg(path='pkg-config', args='--cflags --libs', package='mono-2', uselib_store='MONO')
+	ctx.check_cfg(path='pkg-config', args='--cflags --libs', package='bullet', uselib_store='BULLET')
 	
 	btup = ctx.options.build_type.upper()
 	if btup in ['DEBUG', 'NATIVE', 'RELEASE']:
@@ -133,6 +134,8 @@ def build(bld):
 	
 	clsv_common_files += bld.path.ant_glob('src/sharp/*.cpp')
 	
+	clsv_common_files += bld.path.ant_glob('src/phys/*.cpp')
+	
 	if plat_linux:
 		clsv_common_files += bld.path.ant_glob('src/sys/con_tty.cpp')
 	elif plat_windows:
@@ -153,7 +156,7 @@ def build(bld):
 			target = 'jaownt',
 			includes = ['src'],
 			source = clsv_common_files + client_files,
-			uselib = ['SDL', 'ZLIB', 'DL', 'PTHREAD', 'WS2', 'WMM', 'MONO'],
+			uselib = ['SDL', 'ZLIB', 'DL', 'PTHREAD', 'WS2', 'WMM', 'MONO', 'BULLET'],
 			use = ['minizip', 'botlib'],
 			install_path = os.path.join(top, 'install')
 		)
@@ -172,7 +175,7 @@ def build(bld):
 			includes = ['src', 'src/rd-vanilla'],
 			source = clsv_common_files + server_files,
 			defines = ['_CONSOLE', 'DEDICATED'],
-			uselib = ['ZLIB', 'DL', 'PTHREAD', 'WS2', 'MONO'],
+			uselib = ['ZLIB', 'DL', 'PTHREAD', 'WS2', 'MONO', 'BULLET'],
 			use = ['minizip', 'botlib'],
 			install_path = os.path.join(top, 'install')
 		)

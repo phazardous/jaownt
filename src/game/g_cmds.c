@@ -3592,6 +3592,10 @@ static void Cmd_SharpG_Reboot_f() {
 	G_Sharp_Load_Map_Script();
 }
 
+static void Cmd_Testbox_f() {
+	G_TEST_PhysTestEnt();
+}
+
 /*
 =================
 ClientCommand
@@ -3653,6 +3657,7 @@ command_t commands[] = {
 	{ "tele",				Cmd_Tele_f,					CMD_NOINTERMISSION},
 	{ "teles",				Cmd_Tele_f,					CMD_NOINTERMISSION},
 	{ "thedestroyer",		Cmd_TheDestroyer_f,			CMD_CHEAT|CMD_ALIVE|CMD_NOINTERMISSION },
+	{ "testbox",			Cmd_Testbox_f,				CMD_CHEAT|CMD_ALIVE|CMD_NOINTERMISSION },
 	{ "t_use",				Cmd_TargetUse_f,			CMD_CHEAT|CMD_ALIVE },
 	{ "voice_cmd",			Cmd_VoiceCommand_f,			CMD_NOINTERMISSION },
 	{ "vote",				Cmd_Vote_f,					CMD_NOINTERMISSION },

@@ -186,8 +186,6 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	//Clean up any client-server ghoul2 instance attachments that may still exist exe-side
 	trap->G2API_CleanEntAttachments();
 	
-	G_Sharp_Init();
-	
 	BG_InitMinigames();
 
 	BG_InitAnimsets(); //clear it out
@@ -206,6 +204,9 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	G_ProcessIPBans();
 
 	G_InitMemory();
+	
+	G_Phys_Init();
+	G_Sharp_Init();
 
 	// set some level globals
 	memset( &level, 0, sizeof( level ) );
@@ -348,7 +349,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	SaveRegisteredItems();
 	
 	G_Sharp_Load_Map_Script();
-
+	
 	//trap->Print ("-----------------------------------\n");
 
 	if( level.gametype == GT_SINGLE_PLAYER || trap->Cvar_VariableIntegerValue( "com_buildScript" ) ) {
@@ -444,6 +445,7 @@ void G_ShutdownGame( int restart ) {
 
 //	trap->Print ("==== ShutdownGame ====\n");
 	
+	G_Phys_Shutdown();
 	G_Sharp_Shutdown();
 
 	G_CleanAllFakeClients(); //get rid of dynamically allocated fake client structs.
@@ -3020,6 +3022,8 @@ void G_RunFrame( int levelTime ) {
 	level.framenum++;
 	level.previousTime = level.time;
 	level.time = levelTime;
+	
+	G_Phys_Frame();
 
 	if (g_allowNPC.integer)
 	{
@@ -3119,6 +3123,10 @@ void G_RunFrame( int levelTime ) {
 
 		if ( !ent->r.linked && ent->neverFree ) {
 			continue;
+		}
+		
+		if ( ent->s.eFlags & EF_PHYS ) {
+			G_Phys_UpdateEnt(ent);
 		}
 
 		if ( ent->s.eType == ET_MISSILE ) {

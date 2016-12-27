@@ -1,23 +1,23 @@
 #include "g_local.h"
 #include "b_local.h"
 
-typedef struct sharpsv_callset_s {
+typedef struct sharp_callset_s {
 	
-	   sharpsv_class ib_c;
+	   sharp_class ib_c;
 	   
-	   sharpsv_method m_sload;
-	   sharpsv_method m_sclose;
+	   sharp_method m_sload;
+	   sharp_method m_sclose;
 	   
-	   sharpsv_method m_shutdown;
-	   sharpsv_method m_frame;
-	   sharpsv_method m_chat;
-	   sharpsv_method m_cmd;
+	   sharp_method m_shutdown;
+	   sharp_method m_frame;
+	   sharp_method m_chat;
+	   sharp_method m_cmd;
 	
-	   sharpsv_class ob_c;
-} sharpsv_callset_t;
+	   sharp_class ob_c;
+} sharp_callset_t;
 
-static sharpsv_handle shandle = NULL;
-static sharpsv_callset_t cs;
+static sharp_handle shandle = NULL;
+static sharp_callset_t cs;
 
 #define SHARP_SERVER_DLL "sharpsv.dll"
 #define SHARP_SERVER_NAMESPACE "JAOWNT"
@@ -77,13 +77,13 @@ static gentity_t * G_SharpI_Other (gentity_t * ent) {
 }
 
 // C# --- public static extern string G_Target(IntPtr ent);
-static sharpsv_string G_SharpI_Target (gentity_t * ent) {
+static sharp_string G_SharpI_Target (gentity_t * ent) {
 	if (!ent) return NULL;
 	return trap->Sharp_Create_String(shandle, ent->target);
 }
 
 // C# --- public static extern string G_Targetname(IntPtr ent);
-static sharpsv_string G_SharpI_Targetname (gentity_t * ent) {
+static sharp_string G_SharpI_Targetname (gentity_t * ent) {
 	if (!ent) return NULL;
 	return trap->Sharp_Create_String(shandle, ent->targetname);
 }
@@ -117,14 +117,14 @@ static int G_SharpI_PlayerFromEnt(gentity_t * ent) {
 }
 
 // C# --- public static extern string SVG_PlayerName(int clinum);
-static sharpsv_string G_SharpI_PlayerName(int clinum) {
+static sharp_string G_SharpI_PlayerName(int clinum) {
 	if (clinum >= MAX_CLIENTS || !g_entities[clinum].client) return NULL;
 	return trap->Sharp_Create_String(shandle, g_entities[clinum].client->pers.netname);
 }
 
 // Special
 
-static gentity_t * G_SharpI_SpawnNPC(sharpsv_string svnpc_type, vec3_t pos, float yaw, int health) {
+static gentity_t * G_SharpI_SpawnNPC(sharp_string svnpc_type, vec3_t pos, float yaw, int health) {
 	
 	gentity_t	*newent = NULL;
 	char *		npc_type = Q_strlwr(trap->Sharp_Unbox_String(svnpc_type));
@@ -195,7 +195,7 @@ typedef struct sharpFile_s {
 } sharpFile_t;
 
 // C# --- public static extern IntPtr FS_OpenR(string str);
-static void * G_SharpI_FS_OpenR(sharpsv_string sh) {
+static void * G_SharpI_FS_OpenR(sharp_string sh) {
 	fileHandle_t fh;
 	int len = trap->FS_Open(trap->Sharp_Unbox_String(sh), &fh, FS_READ);
 	if (!fh) return NULL;
@@ -206,7 +206,7 @@ static void * G_SharpI_FS_OpenR(sharpsv_string sh) {
 }
 
 // C# --- public static extern IntPtr FS_OpenW(string str);
-static void * G_SharpI_FS_OpenW(sharpsv_string sh) {
+static void * G_SharpI_FS_OpenW(sharp_string sh) {
 	fileHandle_t fh;
 	int len = trap->FS_Open(trap->Sharp_Unbox_String(sh), &fh, FS_WRITE);
 	if (!fh) return NULL;
@@ -242,17 +242,17 @@ static int G_SharpI_FS_Write(sharpFile_t * fh, void * buffer, int length) {
 // =============== //
 
 // C# --- public static extern void PrintStr(string str);
-static void G_SharpI_Print(sharpsv_string strh) {
+static void G_SharpI_Print(sharp_string strh) {
 	trap->Print(trap->Sharp_Unbox_String(strh));
 }
 
 // C# --- public static extern void ChatAll(string name, string msg);
-static void G_SharpI_ChatAll(sharpsv_string name, sharpsv_string msg) {
+static void G_SharpI_ChatAll(sharp_string name, sharp_string msg) {
 	G_Say(NULL, NULL, SAY_ALL, trap->Sharp_Unbox_String(msg), trap->Sharp_Unbox_String(name));
 }
 
 // C# --- public static extern void ChatTo(string name, string msg, int clinum);
-static void G_SharpI_ChatTo(sharpsv_string name, sharpsv_string msg, int clinum) {
+static void G_SharpI_ChatTo(sharp_string name, sharp_string msg, int clinum) {
 	G_Say(NULL, g_entities + clinum, SAY_TELL, trap->Sharp_Unbox_String(msg), trap->Sharp_Unbox_String(name));
 }
 
@@ -261,7 +261,7 @@ static void G_SharpI_ChatTo(sharpsv_string name, sharpsv_string msg, int clinum)
 // ================ //
 
 // C# --- public static extern IntPtr[] G_FindEntitiesBySharpTag (string tag);
-static sharpsv_array G_SharpI_FindEntitiesBySharpTag(sharpsv_string stag) {
+static sharp_array G_SharpI_FindEntitiesBySharpTag(sharp_string stag) {
 	char const * tag = trap->Sharp_Unbox_String(stag);
 	size_t tagl = strlen(tag);
 	static gentity_t * ments [MAX_GENTITIES];
@@ -294,7 +294,7 @@ static sharpsv_array G_SharpI_FindEntitiesBySharpTag(sharpsv_string stag) {
 }
 
 // C# --- public static extern IntPtr[] G_FindEntitiesBySharpTargetname (string name);
-static sharpsv_array G_SharpI_FindEntitiesBySharpTargetname(sharpsv_string stargetname) {
+static sharp_array G_SharpI_FindEntitiesBySharpTargetname(sharp_string stargetname) {
 	char const * tg = trap->Sharp_Unbox_String(stargetname);
 	size_t tgl = strlen(tg);
 	static gentity_t * ments [MAX_GENTITIES];
@@ -377,7 +377,7 @@ void G_Sharp_Shutdown () {
 	G_Sharp_Event_Shutdown();
 	trap->Sharp_Destroy(shandle);
 	shandle = NULL;
-	memset(&cs, 0, sizeof(sharpsv_callset_t));
+	memset(&cs, 0, sizeof(sharp_callset_t));
 }
 
 void G_Sharp_Load_Map_Script() {
@@ -408,7 +408,7 @@ sharpg_handle G_Sharp_Load (char const * manifest) {
 	
 	char * fbuf = malloc(len + 1);
 	trap->FS_Read(fbuf, len, fh);
-	sharpsv_string manifs = trap->Sharp_Create_String(shandle, fbuf);
+	sharp_string manifs = trap->Sharp_Create_String(shandle, fbuf);
 	free(fbuf);
 	trap->FS_Close(fh);
 	

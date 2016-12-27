@@ -2434,3 +2434,34 @@ typedef struct minigameState_s {
 	int data_size;
 	void * data;
 } minigameState_t;
+
+
+/*
+========================================================================
+
+Sharp
+
+========================================================================
+*/
+
+typedef void * sharp_handle;
+typedef void * sharp_class;
+typedef void * sharp_method;
+typedef void * sharp_string;
+typedef void * sharp_array;
+
+/*
+========================================================================
+
+Phys
+
+========================================================================
+*/
+
+typedef struct phys_world_s phys_world_t;
+typedef struct phys_object_s phys_object_t;
+
+typedef struct phys_interactor_s {
+	vec3_t origin;
+	vec3_t angles;
+} phys_interactor_t;

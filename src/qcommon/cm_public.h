@@ -80,3 +80,8 @@ void CM_DrawDebugSurface( void (*drawPoly)(int color, int numPoints, float *poin
 
 // cm_trace.cpp
 bool CM_CullWorldBox (const cplane_t *frustum, const vec3pair_t bounds);
+
+
+// cm_obj.cpp
+int CM_GetModelVerticies(char const * name, vec3_t * points, int points_num);
+objSurface_t * CM_LoadObj(char const * name);

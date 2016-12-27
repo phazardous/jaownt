@@ -31,6 +31,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/timing.h"
 #include "NPCNav/navigator.h"
 #include "sharp/sharp_public.hpp"
+#include "phys/phys_public.hpp"
 
 botlib_export_t	*botlib_export;
 
@@ -1560,31 +1561,31 @@ static void SV_G2API_GetSurfaceName( void *ghoul2, int surfNumber, int modelInde
 	strcpy( fillBuf, tmp );
 }
 
-static sharpsv_handle SV_Sharp_Create(char const * asmloc) {
+static sharp_handle SV_Sharp_Create(char const * asmloc) {
 	return Sharp_Create(asmloc);
 }
 
-static void SV_Sharp_Destroy (sharpsv_handle h) {
+static void SV_Sharp_Destroy (sharp_handle h) {
 	Sharp_Destroy(h);
 }
 
-static sharpsv_class SV_Sharp_Resolve_Class (sharpsv_handle h, char const * name_space, char const * name) {
+static sharp_class SV_Sharp_Resolve_Class (sharp_handle h, char const * name_space, char const * name) {
 	return Sharp_Resolve_Class(h, name_space, name);
 }
 
-static sharpsv_method SV_Sharp_Resolve_Method (sharpsv_class ch, char const * name, int arg_c) {
+static sharp_method SV_Sharp_Resolve_Method (sharp_class ch, char const * name, int arg_c) {
 	return Sharp_Resolve_Method(ch, name, arg_c);
 }
 
-static void SV_Sharp_Resolve_Internal(sharpsv_handle h, char const * name, void * call) {
+static void SV_Sharp_Resolve_Internal(sharp_handle h, char const * name, void * call) {
 	Sharp_Resolve_Internal(h, name, call);
 }
 
-static void SV_Sharp_Bind(sharpsv_handle h) {
+static void SV_Sharp_Bind(sharp_handle h) {
 	Sharp_Bind(h);
 }
 
-static void * SV_Sharp_Invoke (sharpsv_handle h, sharpsv_method m, void * * arg, char * * err) {
+static void * SV_Sharp_Invoke (sharp_handle h, sharp_method m, void * * arg, char * * err) {
 	std::string err_str;
 	void * res = Sharp_Invoke(h, m, arg, err_str);
 	if (err_str.empty()) {
@@ -1595,16 +1596,16 @@ static void * SV_Sharp_Invoke (sharpsv_handle h, sharpsv_method m, void * * arg,
 	return res;
 }
 
-static sharpsv_string SV_Sharp_Create_String(sharpsv_handle h, char const * str) {
+static sharp_string SV_Sharp_Create_String(sharp_handle h, char const * str) {
 	return Sharp_Create_String(h, str);
 }
 
-static char * SV_Sharp_Unbox_String(sharpsv_string sstr) {
+static char * SV_Sharp_Unbox_String(sharp_string sstr) {
 	std::string istr = Sharp_Unbox_String(sstr);
 	return va("%s", istr.c_str());
 }
 
-static sharpsv_string SV_Sharp_Create_Ptr_Array(sharpsv_handle h, void * * elements, size_t count) {
+static sharp_string SV_Sharp_Create_Ptr_Array(sharp_handle h, void * * elements, size_t count) {
 	return Sharp_Create_Ptr_Array(h, elements, count);
 }
 
@@ -1955,6 +1956,12 @@ void SV_BindGame( void ) {
 		gi.Sharp_Create_String					= SV_Sharp_Create_String;
 		gi.Sharp_Unbox_String					= SV_Sharp_Unbox_String;
 		gi.Sharp_Create_Ptr_Array				= SV_Sharp_Create_Ptr_Array;
+		gi.Phys_World_Create					= Phys_World_Create;
+		gi.Phys_World_Destroy					= Phys_World_Destroy;
+		gi.Phys_World_Advance					= Phys_World_Advance;
+		gi.Phys_Object_Create_From_Obj			= Phys_Object_Create_From_Obj;
+		gi.Phys_Object_Get_Transform			= Phys_Object_Get_Transform;
+		gi.Phys_Object_Set_Transform			= Phys_Object_Set_Transform;
 
 		GetGameAPI = (GetGameAPI_t)gvm->GetModuleAPI;
 		ret = GetGameAPI( GAME_API_VERSION, &gi );
