@@ -553,3 +553,12 @@ void CON_Print( const char *msg )
 
 	CON_Show( );
 }
+
+/*
+==================
+CON_Hist_Load
+==================
+*/
+void CON_Hist_Load( void ) { // FIXME: dummy, maybe do later
+
+}
