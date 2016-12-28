@@ -21,7 +21,7 @@ struct phys_object_s {
 	btTransform trans_cache {};
 	
 	btScalar mass {1};
-	btVector3 inertia {0, 0, 0};
+	btVector3 inertia {0, 0, 0}; 
 	btCollisionShape * shape = nullptr;
 	btDefaultMotionState * motion_state = nullptr;
 	btRigidBody * body = nullptr;
