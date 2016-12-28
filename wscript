@@ -9,11 +9,11 @@ out = 'build'
 plat_linux = False
 plat_windows = False
 
-if sys.platform.startswith('win32'):
+if sys.platform.startswith('win32') or sys.platform.startswith('msys'):
 	plat_windows = True
 elif sys.platform.startswith('linux'):
 	plat_linux = True
-
+	
 module_end = "bin"
 if plat_linux:
 	module_end = 'so'
@@ -42,7 +42,8 @@ def btype_cxxflags(ctx):
 def options(opt):
 	opt.load('gcc')
 	opt.load('g++')
-	opt.load('cs')
+	if not plat_windows: # FIXME: windows users have to manually compile sharpsv due to some weird bug I don't fully understand
+		opt.load('cs')
 	
 	opt.add_option('--build_type', dest='build_type', type='string', default='RELEASE', action='store', help='DEBUG, NATIVE, RELEASE')
 	opt.add_option('--no_server', dest='bldsv', default=True, action='store_false', help='True/False')
@@ -55,7 +56,8 @@ def configure(ctx):
 	
 	ctx.load('gcc')
 	ctx.load('g++')
-	ctx.load('cs')
+	if not plat_windows: # FIXME: windows users have to manually compile sharpsv due to some weird bug I don't fully understand
+		ctx.load('cs')
 	
 	ctx.check(features='c cprogram', lib='z', uselib_store='ZLIB')
 	ctx.check(features='c cprogram', lib='dl', uselib_store='DL')
@@ -266,18 +268,18 @@ def build(bld):
 		rdvan.env.cxxshlib_PATTERN = '%s_x86_64.' + module_end
 	
 	### C# SCRIPTING LIBRARY ###
-	
-	monolib_files = bld.path.ant_glob('src/sharp/sharpsv/*.cs')
-	
-	monolib = bld (
-		features = 'cs',
-		bintype='library',
-		gen = 'sharpsv.dll',
-		name = 'sharpsv',
-		source = monolib_files,
-		install_path = os.path.join(top, 'install', 'sharp')
-	)
-	
+	if not plat_windows: # FIXME: windows users have to manually compile sharpsv due to some weird bug I don't fully understand
+		monolib_files = bld.path.ant_glob('src/sharp/sharpsv/*.cs')
+		
+		monolib = bld (
+			features = 'cs',
+			bintype='library',
+			gen = 'sharpsv.dll',
+			name = 'sharpsv',
+			source = monolib_files,
+			install_path = os.path.join(top, 'install', 'sharp')
+		)
+		
 	###
 	
 def clean(ctx):

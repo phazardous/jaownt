@@ -9,6 +9,6 @@ cd "$DIR"
 	--build_type=debug \
 	configure
 	
-./waf build
+./waf build -v
 ./waf install
 #./waf clean
