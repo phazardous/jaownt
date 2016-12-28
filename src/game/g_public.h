@@ -737,7 +737,10 @@ typedef struct gameImport_s {
 	phys_world_t * 	(*Phys_World_Create) 				( void );
 	void 			(*Phys_World_Destroy)				( phys_world_t * );
 	void			(*Phys_World_Advance)				( phys_world_t *, int time );
-	phys_object_t * (*Phys_Object_Create_From_Obj)		( phys_world_t * world, char const * path, vec3_t pos, float mass );
+	void 			(*Phys_World_Set_Resolution)		( phys_world_t * world, unsigned int resolution );
+	void			(*Phys_World_Add_Current_Map)		( phys_world_t * );
+	phys_object_t * (*Phys_Object_Create_From_Obj)		( phys_world_t * world, char const * path, vec3_t pos, float mass, qboolean kinematic );
+	phys_object_t * (*Phys_Object_Create_From_BModel)	( phys_world_t * world, int modeli, float mass, qboolean kinematic );
 	void 			(*Phys_Object_Get_Transform)		( phys_object_t *, phys_interactor_t * );
 	void 			(*Phys_Object_Set_Transform)		( phys_object_t *, phys_interactor_t const * );
 

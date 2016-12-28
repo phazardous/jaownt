@@ -1557,8 +1557,13 @@ void G_SharpCmd(gentity_t * ent, sharpCmd_t cmde);
 void G_Phys_Init ();
 void G_Phys_Shutdown ();
 void G_Phys_Frame ();
-void G_Phys_UpdateEnt(gentity_t * ent);
+void G_Phys_Update_CvarRes();
 
-void G_TEST_PhysTestEnt();
+void G_Phys_UpdateEnt(gentity_t * ent);
+void G_Phys_UpdateEntMover(gentity_t * ent);
+
+void G_Phys_AddBMover(gentity_t * mover);
+
+void G_TEST_PhysTestEnt(vec3_t pos);
 
 extern gameImport_t *trap;

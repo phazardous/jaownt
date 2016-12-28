@@ -1026,6 +1026,9 @@ void InitMover( gentity_t *ent )
 	trap->LinkEntity( (sharedEntity_t *)ent );
 
 	InitMoverTrData( ent );
+	
+	ent->s.eFlags |= EF_PHYS;
+	G_Phys_AddBMover(ent);
 }
 
 

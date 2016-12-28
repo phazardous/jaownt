@@ -6,12 +6,10 @@ static int last_time = 0;
 void G_Phys_Init() {
 	trap->Print("================================\n");
 	trap->Print("Initializing Serverside Physics\n");
-	gworld = trap->Phys_World_Create();
 	
-	vec3_t pos, mins, maxs;
-	VectorSet(pos, 0, 0, 150);
-	VectorSet(mins, -4, -4, -4);
-	VectorSet(maxs, 4, 4, 4);
+	gworld = trap->Phys_World_Create();
+	G_Phys_Update_CvarRes();
+	trap->Phys_World_Add_Current_Map(gworld);
 	
 	trap->Print("================================\n");
 }
@@ -30,21 +28,40 @@ void G_Phys_Frame() {
 	last_time = level.time;
 }
 
+void G_Phys_Update_CvarRes() {
+	if (!gworld) return;
+	trap->Phys_World_Set_Resolution(gworld, g_physresolution.integer);
+}
+
 static phys_interactor_t act;
 
 void G_Phys_UpdateEnt(gentity_t * ent) {
+	if (!ent->phys) return;
 	trap->Phys_Object_Get_Transform(ent->phys, &act);
 	G_SetOrigin(ent, act.origin);
 	G_SetAngles(ent, act.angles);
 	trap->LinkEntity( (sharedEntity_t *) ent);
 }
 
-void G_TEST_PhysTestEnt() {
-	vec3_t pos;
-	VectorSet(pos, 0, 0, 500);
+void G_Phys_UpdateEntMover(gentity_t * ent) {
+	if (!ent->phys) return;
+	VectorCopy(ent->r.currentOrigin, act.origin);
+	VectorCopy(ent->r.currentAngles, act.angles);
+	trap->Phys_Object_Set_Transform(ent->phys, &act);
+}
+
+void G_Phys_AddBMover(gentity_t * mover) {
+	if (!mover->r.bmodel) return;
+	int bmodi = strtol(mover->model + 1, NULL, 10);
+	mover->phys = trap->Phys_Object_Create_From_BModel(gworld, bmodi, 0, qtrue);
+}
+
+void G_TEST_PhysTestEnt(vec3_t pos) {
 	gentity_t * physent = G_Spawn();
+	physent->s.eType = ET_GENERAL;
 	physent->s.eFlags |= EF_PHYS;
-	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, "models/testbox.obj", pos, 50);
+	physent->r.svFlags |= SVF_BROADCAST;
+	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, "models/testbox.obj", pos, 500, qfalse);
 	physent->s.modelindex = G_ModelIndex("models/testbox.obj");
 	G_SetOrigin(physent, pos);
 	trap->LinkEntity( (sharedEntity_t *) physent);

@@ -3125,7 +3125,7 @@ void G_RunFrame( int levelTime ) {
 			continue;
 		}
 		
-		if ( ent->s.eFlags & EF_PHYS ) {
+		if ( ent->s.eFlags & EF_PHYS && ent->s.eType != ET_MOVER ) {
 			G_Phys_UpdateEnt(ent);
 		}
 
@@ -3156,6 +3156,7 @@ void G_RunFrame( int levelTime ) {
 
 		if ( ent->s.eType == ET_MOVER ) {
 			G_RunMover( ent );
+			if (ent->s.eFlags & EF_PHYS) G_Phys_UpdateEntMover(ent);
 			continue;
 		}
 

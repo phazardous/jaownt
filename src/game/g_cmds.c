@@ -3578,7 +3578,7 @@ static void Cmd_Tele_f( gentity_t * ent ) {
 	}
 }
 
-static void Cmd_SharpG_Load_f() {
+static void Cmd_SharpG_Load_f( gentity_t * ent ) {
 	char script [MAX_FILEPATH];
 	for (int i = 1; i < trap->Argc(); i++) {
 		trap->Argv(i, script, MAX_FILEPATH);
@@ -3586,14 +3586,14 @@ static void Cmd_SharpG_Load_f() {
 	}
 }
 
-static void Cmd_SharpG_Reboot_f() {
+static void Cmd_SharpG_Reboot_f( gentity_t * ent ) {
 	G_Sharp_Shutdown();
 	G_Sharp_Init();
 	G_Sharp_Load_Map_Script();
 }
 
-static void Cmd_Testbox_f() {
-	G_TEST_PhysTestEnt();
+static void Cmd_Testbox_f( gentity_t * ent ) {
+	G_TEST_PhysTestEnt(ent->r.currentOrigin);
 }
 
 /*
