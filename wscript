@@ -46,6 +46,7 @@ def options(opt):
 		opt.load('cs')
 	
 	opt.add_option('--build_type', dest='build_type', type='string', default='RELEASE', action='store', help='DEBUG, NATIVE, RELEASE')
+	opt.add_option('--bash_location', dest='bash_location', type='string', default='bash', action='store', help='Location of bash when compiling on Windows. Optional.')
 	opt.add_option('--no_server', dest='bldsv', default=True, action='store_false', help='True/False')
 	opt.add_option('--no_client', dest='bldcl', default=True, action='store_false', help='True/False')
 
@@ -76,7 +77,7 @@ def configure(ctx):
 		if ctx.env.BUILD_CLIENT:
 			ctx.check(features='c cprogram', lib='opengl32', uselib_store='GL')
 			ctx.check(features='c cprogram', lib='winmm', uselib_store='WMM')
-			ctx.check_cfg(path='bash sdl2-config', args='--cflags --libs', package='', uselib_store='SDL')
+			ctx.check_cfg(path=ctx.options.bash_location.upper() + ' sdl2-config', args='--cflags --libs', package='', uselib_store='SDL')
 	ctx.check_cfg(path='pkg-config', args='--cflags --libs', package='mono-2', uselib_store='MONO')
 	ctx.check_cfg(path='pkg-config', args='--cflags --libs', package='bullet', uselib_store='BULLET')
 	
