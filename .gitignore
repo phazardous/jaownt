@@ -1,5 +1,4 @@
 ### Project Files ###
-CMakeLists.txt
 cmake-build-*/
 waf*/
 *.kdev4
