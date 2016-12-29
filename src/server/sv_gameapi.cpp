@@ -1960,6 +1960,7 @@ void SV_BindGame( void ) {
 		gi.Phys_World_Destroy					= Phys_World_Destroy;
 		gi.Phys_World_Advance					= Phys_World_Advance;
 		gi.Phys_World_Set_Resolution			= Phys_World_Set_Resolution;
+		gi.Phys_World_Set_Gravity				= Phys_World_Set_Gravity;
 		gi.Phys_World_Add_Current_Map			= Phys_World_Add_Current_Map;
 		gi.Phys_Object_Create_From_Obj			= Phys_Object_Create_From_Obj;
 		gi.Phys_Object_Create_From_BModel		= Phys_Object_Create_From_BModel;

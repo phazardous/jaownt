@@ -2461,7 +2461,15 @@ Phys
 typedef struct phys_world_s phys_world_t;
 typedef struct phys_object_s phys_object_t;
 
-typedef struct phys_interactor_s {
+typedef struct phys_properties_s {
+	float mass;
+	float restitution;
+	float friction;
+	float dampening;
+	void * token; // used by implementers to quickly identify who owns a phys_object_t
+} phys_properties_t;
+
+typedef struct phys_transform_s {
 	vec3_t origin;
 	vec3_t angles;
-} phys_interactor_t;
+} phys_transform_t;

@@ -8,7 +8,8 @@ void G_Phys_Init() {
 	trap->Print("Initializing Serverside Physics\n");
 	
 	gworld = trap->Phys_World_Create();
-	G_Phys_Update_CvarRes();
+	G_Phys_Upd_Res();
+	G_Phys_Upd_Grav();
 	trap->Phys_World_Add_Current_Map(gworld);
 	
 	trap->Print("================================\n");
@@ -28,32 +29,48 @@ void G_Phys_Frame() {
 	last_time = level.time;
 }
 
-void G_Phys_Update_CvarRes() {
+void G_Phys_Upd_Res() {
 	if (!gworld) return;
 	trap->Phys_World_Set_Resolution(gworld, g_physresolution.integer);
 }
 
-static phys_interactor_t act;
+void G_Phys_Upd_Grav() {
+	if (!gworld) return;
+	trap->Phys_World_Set_Gravity(gworld, g_gravity.value);
+}
+
+static phys_transform_t trans;
+static phys_properties_t props;
 
 void G_Phys_UpdateEnt(gentity_t * ent) {
 	if (!ent->phys) return;
-	trap->Phys_Object_Get_Transform(ent->phys, &act);
-	G_SetOrigin(ent, act.origin);
-	G_SetAngles(ent, act.angles);
+	trap->Phys_Object_Get_Transform(ent->phys, &trans);
+	G_SetOrigin(ent, trans.origin);
+	G_SetAngles(ent, trans.angles);
 	trap->LinkEntity( (sharedEntity_t *) ent);
 }
 
 void G_Phys_UpdateEntMover(gentity_t * ent) {
 	if (!ent->phys) return;
-	VectorCopy(ent->r.currentOrigin, act.origin);
-	VectorCopy(ent->r.currentAngles, act.angles);
-	trap->Phys_Object_Set_Transform(ent->phys, &act);
+	VectorCopy(ent->r.currentOrigin, trans.origin);
+	VectorCopy(ent->r.currentAngles, trans.angles);
+	trap->Phys_Object_Set_Transform(ent->phys, &trans);
 }
 
 void G_Phys_AddBMover(gentity_t * mover) {
 	if (!mover->r.bmodel) return;
 	int bmodi = strtol(mover->model + 1, NULL, 10);
-	mover->phys = trap->Phys_Object_Create_From_BModel(gworld, bmodi, 0, qtrue);
+	
+	VectorClear(trans.origin);
+	VectorClear(trans.angles);
+	
+	props.mass = 0;
+	props.friction = 0.5;
+	props.restitution = 0.125;
+	props.dampening = 0;
+	props.token = mover;
+	
+	mover->phys = trap->Phys_Object_Create_From_BModel(gworld, bmodi, &trans, &props, qtrue);
 }
 
 void G_TEST_PhysTestEnt(vec3_t pos) {
@@ -61,7 +78,18 @@ void G_TEST_PhysTestEnt(vec3_t pos) {
 	physent->s.eType = ET_GENERAL;
 	physent->s.eFlags |= EF_PHYS;
 	physent->r.svFlags |= SVF_BROADCAST;
-	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, "models/testbox.obj", pos, 500, qfalse);
+	
+	VectorCopy(pos, trans.origin);
+	VectorClear(trans.angles);
+	
+	props.mass = 500;
+	props.friction = 0.5;
+	props.restitution = 0.125;
+	props.dampening = 0;
+	props.token = physent;
+	
+	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, "models/testbox.obj", &trans, &props, qfalse);
+	
 	physent->s.modelindex = G_ModelIndex("models/testbox.obj");
 	G_SetOrigin(physent, pos);
 	trap->LinkEntity( (sharedEntity_t *) physent);

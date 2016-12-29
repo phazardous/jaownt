@@ -1532,6 +1532,7 @@ void Svcmd_ToggleAllowVote_f( void );
 // g_cvar.c
 #define XCVAR_PROTO
 	#include "g_xcvar.h"
+	#include "bg_xcvar.h"
 #undef XCVAR_PROTO
 void G_RegisterCvars( void );
 void G_UpdateCvars( void );
@@ -1557,7 +1558,9 @@ void G_SharpCmd(gentity_t * ent, sharpCmd_t cmde);
 void G_Phys_Init ();
 void G_Phys_Shutdown ();
 void G_Phys_Frame ();
-void G_Phys_Update_CvarRes();
+
+void G_Phys_Upd_Res();
+void G_Phys_Upd_Grav();
 
 void G_Phys_UpdateEnt(gentity_t * ent);
 void G_Phys_UpdateEntMover(gentity_t * ent);

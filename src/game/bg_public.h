@@ -60,6 +60,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define ARMOR_REDUCTION_FACTOR	0.50 // Certain damage doesn't take off armor as efficiently
 
 #define	JUMP_VELOCITY		225//270
+#define ZERO_G_PUSH_VELOCITY	3.5
 
 #define	MAX_ITEMS			256
 

@@ -1,15 +1,34 @@
 #include "cm_local.h"
 #include "cm_patch.h"
 
-#include <vector>
-#include <glm/matrix.hpp>
+void MatrixInverse(matrix3_t inMatrix, matrix3_t outMatrix) {
+	float det = inMatrix[0][0] * (inMatrix[2][2] * inMatrix[1][1] - inMatrix[2][1] * inMatrix[1][2]) -
+				inMatrix[0][1] * (inMatrix[2][2] * inMatrix[1][0] - inMatrix[2][0] * inMatrix[1][2]) +
+				inMatrix[0][2] * (inMatrix[2][1] * inMatrix[1][0] - inMatrix[2][0] * inMatrix[1][1]);
 
-#include <btBulletDynamicsCommon.h>
+	outMatrix[0][0] = (inMatrix[2][2] * inMatrix[1][1] - inMatrix[2][1] * inMatrix[1][2]) / det;
+	outMatrix[0][1] = (inMatrix[2][0] * inMatrix[1][2] - inMatrix[2][2] * inMatrix[1][0]) / det;
+	outMatrix[0][2] = (inMatrix[2][1] * inMatrix[1][0] - inMatrix[2][0] * inMatrix[1][1]) / det;
 
-#define VECBANY( vect ) ( vect.x || vect.y || vect.z )
+	outMatrix[1][0] = (inMatrix[0][2] * inMatrix[2][1] - inMatrix[0][1] * inMatrix[2][2]) / det;
+	outMatrix[1][1] = (inMatrix[0][0] * inMatrix[2][2] - inMatrix[0][2] * inMatrix[2][0]) / det;
+	outMatrix[1][2] = (inMatrix[0][1] * inMatrix[2][0] - inMatrix[0][0] * inMatrix[2][1]) / det;
+
+	outMatrix[2][0] = (inMatrix[1][2] * inMatrix[0][1] - inMatrix[1][1] * inMatrix[0][2]) / det;
+	outMatrix[2][1] = (inMatrix[1][0] * inMatrix[0][2] - inMatrix[1][2] * inMatrix[0][0]) / det;
+	outMatrix[2][2] = (inMatrix[1][1] * inMatrix[0][0] - inMatrix[1][0] * inMatrix[0][1]) / det;
+}
+
+void MatrixVectorMultiply(matrix3_t matrix, vec3_t vector, vec3_t out) {
+	out[0] = matrix[0][0] * vector[0] + matrix[0][1] * vector[1] + matrix[0][2] * vector[2];
+	out[1] = matrix[1][0] * vector[0] + matrix[1][1] * vector[1] + matrix[1][2] * vector[2];
+	out[2] = matrix[2][0] * vector[0] + matrix[2][1] * vector[1] + matrix[2][2] * vector[2];
+}
 
 static void CM_GetIntersectingPoint(cplane_t * a, cplane_t * b, cplane_t * c, vec3_t out) {
-	glm::mat3x3 sysmat;
+	matrix3_t sysmat, sysmatInverse;
+	vec3_t dists;
+	
 	sysmat[0][0] = a->normal[0];
 	sysmat[0][1] = b->normal[0];
 	sysmat[0][2] = c->normal[0];
@@ -20,8 +39,10 @@ static void CM_GetIntersectingPoint(cplane_t * a, cplane_t * b, cplane_t * c, ve
 	sysmat[2][1] = b->normal[2];
 	sysmat[2][2] = c->normal[2];
 	
-	glm::vec3 r = glm::inverse(sysmat) * glm::vec3(a->dist, b->dist, c->dist);
-	VectorSet(out, r[0], r[1], r[2]);
+
+	MatrixInverse(sysmat, sysmatInverse);
+	VectorSet(dists, a->dist, b->dist, c->dist);
+	MatrixVectorMultiply(sysmatInverse, dists, out);
 }
 
 void CM_NumData(int * brushes, int * surfaces) {

@@ -2067,8 +2067,28 @@ static qboolean PM_CheckJump( void )
 		return qfalse;
 	}
 
-	if ( pm->ps->gravity <= 0 )
+	if ( pm->ps->gravity == 0 )
 	{//in low grav, you push in the dir you're facing as long as there is something behind you to shove off of
+		vec3_t	forward, back;
+		trace_t	trace;
+
+		AngleVectors( pm->ps->viewangles, forward, NULL, NULL );
+		VectorMA( pm->ps->origin, -8, forward, back );
+		vec3_t mins_adj, maxs_adj;
+		VectorScale(pm->mins, 1.25f, mins_adj);
+		VectorScale(pm->maxs, 1.25f, maxs_adj);
+		pm->trace( &trace, pm->ps->origin, mins_adj, maxs_adj, back, pm->ps->clientNum, pm->tracemask );
+
+		if ( trace.fraction < 1.0f )
+		{
+			VectorMA( pm->ps->velocity, ZERO_G_PUSH_VELOCITY, forward, pm->ps->velocity );
+			PM_SetAnim(SETANIM_LEGS,BOTH_FORCEJUMP1,SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD|SETANIM_FLAG_RESTART);
+		} else { //else no surf close enough to push off of
+			pm->cmd.upmove = 0;
+			pm->cmd.forwardmove *= bg_aircontrolzerog.value;
+			pm->cmd.rightmove *= bg_aircontrolzerog.value;
+		}
+	} else if ( pm->ps->gravity < 0 ) { // emulate broken old zero-or-less-gravity behavior cause it's funny
 		vec3_t	forward, back;
 		trace_t	trace;
 
@@ -2076,9 +2096,9 @@ static qboolean PM_CheckJump( void )
 		VectorMA( pm->ps->origin, -8, forward, back );
 		pm->trace( &trace, pm->ps->origin, pm->mins, pm->maxs, back, pm->ps->clientNum, pm->tracemask );
 
-		if ( trace.fraction <= 1.0f )
+		if ( trace.fraction <= 1.0f ) // but... this is always true...
 		{
-			VectorMA( pm->ps->velocity, JUMP_VELOCITY*2, forward, pm->ps->velocity );
+			VectorMA( pm->ps->velocity, JUMP_VELOCITY*2, forward, pm->ps->velocity ); // WHY SO FAST
 			PM_SetAnim(SETANIM_LEGS,BOTH_FORCEJUMP1,SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD|SETANIM_FLAG_RESTART);
 		}//else no surf close enough to push off of
 		pm->cmd.upmove = 0;

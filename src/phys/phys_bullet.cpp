@@ -20,13 +20,22 @@ struct phys_object_s {
 	btTransform new_trans {};
 	btTransform trans_cache {};
 	
-	btScalar mass {1};
+	phys_properties_t properties;
+	
 	btVector3 inertia {0, 0, 0}; 
 	btCollisionShape * shape = nullptr;
 	btDefaultMotionState * motion_state = nullptr;
 	btRigidBody * body = nullptr;
 	
 	bool is_compound = false;
+	
+	void set_properties() {
+		shape->calculateLocalInertia(properties.mass, inertia);
+		body->setMassProps(properties.mass, inertia);
+		body->setDamping(properties.dampening, properties.dampening);
+		body->setFriction(properties.friction);
+		body->setRestitution(properties.restitution);
+	}
 	
 	~phys_object_s() {
 		if (body) delete body;
@@ -156,6 +165,12 @@ void Phys_World_Set_Resolution(phys_world_t * world, unsigned int resolution) {
 	world->simlock.unlock();
 }
 
+void Phys_World_Set_Gravity(phys_world_t * world, float gravity) {
+	world->simlock.lock();
+	world->world->setGravity( {0, 0, -gravity} );
+	world->simlock.unlock();
+}
+
 #define BP_POINTS_SIZE (2048*4)
 
 struct gptp_brusurf_task_data {
@@ -272,33 +287,31 @@ void Phys_World_Add_Current_Map(phys_world_t * world) {
 	}
 	
 	world->map_static = new phys_object_t;
-	world->map_static->mass = 0;
 	world->map_static->is_compound = true;
 	btd.cs->recalculateLocalAabb();
 	world->map_static->shape = btd.cs;
 	world->map_static->motion_state = new btDefaultMotionState { btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} } };
-	world->map_static->shape->calculateLocalInertia(world->map_static->mass, world->map_static->inertia);
-	btRigidBody::btRigidBodyConstructionInfo CI {world->map_static->mass, world->map_static->motion_state, world->map_static->shape, world->map_static->inertia};
+	world->map_static->shape->calculateLocalInertia(0, world->map_static->inertia);
+	btRigidBody::btRigidBodyConstructionInfo CI {0, world->map_static->motion_state, world->map_static->shape, world->map_static->inertia};
 	world->map_static->body = new btRigidBody {CI};
 	world->world->addRigidBody(world->map_static->body);
 	
 	world->map_static_slick = new phys_object_t;
-	world->map_static_slick->mass = 0;
 	world->map_static_slick->is_compound = true;
 	btd.css->recalculateLocalAabb();
 	world->map_static_slick->shape = btd.css;
 	world->map_static_slick->motion_state = new btDefaultMotionState { btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} } };
-	world->map_static_slick->shape->calculateLocalInertia(world->map_static_slick->mass, world->map_static_slick->inertia);
-	btRigidBody::btRigidBodyConstructionInfo CIS {world->map_static_slick->mass, world->map_static_slick->motion_state, world->map_static_slick->shape, world->map_static_slick->inertia};
+	world->map_static_slick->shape->calculateLocalInertia(0, world->map_static_slick->inertia);
+	btRigidBody::btRigidBodyConstructionInfo CIS {0, world->map_static_slick->motion_state, world->map_static_slick->shape, world->map_static_slick->inertia};
 	world->map_static_slick->body = new btRigidBody {CIS};
 	world->map_static_slick->body->setFriction(0);
 	world->world->addRigidBody(world->map_static_slick->body);
 }
 
-phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * path, vec3_t pos, float mass, qboolean kinematic) {
+phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * path, phys_transform_t * initial_transform, phys_properties_t * properties, qboolean kinematic) {
 	phys_object_t * no = new phys_object_t;
 	
-	no->mass = mass;
+	no->properties = *properties;
 	btConvexHullShape * chs = new btConvexHullShape;
 
 	objSurface_t * surf = CM_LoadObj(path);
@@ -310,11 +323,14 @@ phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * p
 	
 	chs->recalcLocalAabb();
 	no->shape = chs;
-	no->motion_state = new btDefaultMotionState { btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {pos[0], pos[1], pos[2]} } };
-	no->shape->calculateLocalInertia(no->mass, no->inertia);
-	btRigidBody::btRigidBodyConstructionInfo CI {no->mass, no->motion_state, no->shape, no->inertia};
+	no->motion_state = new btDefaultMotionState { btTransform { 
+		btQuaternion { initial_transform->angles[0] * d2r_mult, initial_transform->angles[2] * d2r_mult, initial_transform->angles[1] * d2r_mult }, 
+		btVector3 {initial_transform->origin[0], initial_transform->origin[1], initial_transform->origin[2]} } };
+	no->shape->calculateLocalInertia(no->properties.mass, no->inertia);
+	btRigidBody::btRigidBodyConstructionInfo CI {no->properties.mass, no->motion_state, no->shape, no->inertia};
 	no->body = new btRigidBody {CI};
-	no->body->setDamping(0.125f, 0.125f);
+	
+	no->set_properties();
 	
 	if (kinematic) {
 		no->body->setCollisionFlags(no->body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
@@ -330,7 +346,7 @@ phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * p
 	return no;
 }
 
-phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli, float mass, qboolean kinematic) {
+phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli, phys_transform_t * initial_transform, phys_properties_t * properties, qboolean kinematic) {
 	vec3_t points[BP_POINTS_SIZE];
 	int brushes_max, surfaces_max, brushes_num, surfaces_num;
 	CM_NumData(&brushes_max, &surfaces_max);
@@ -339,7 +355,7 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 	CM_SubmodelIndicies(modeli, brushes, patches, &brushes_num, &surfaces_num);
 	
 	phys_object_t * no = new phys_object_t;
-	no->mass = mass;
+	no->properties = *properties;
 	no->is_compound = true;
 	btCompoundShape * cs = new btCompoundShape;
 	
@@ -380,10 +396,14 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 	
 	cs->recalculateLocalAabb();
 	no->shape = cs;
-	no->motion_state = new btDefaultMotionState { btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} } };
-	no->shape->calculateLocalInertia(no->mass, no->inertia);
-	btRigidBody::btRigidBodyConstructionInfo CI {no->mass, no->motion_state, no->shape, no->inertia};
+	no->motion_state = new btDefaultMotionState { btTransform { 
+		btQuaternion { initial_transform->angles[0] * d2r_mult, initial_transform->angles[2] * d2r_mult, initial_transform->angles[1] * d2r_mult }, 
+		btVector3 {initial_transform->origin[0], initial_transform->origin[1], initial_transform->origin[2]} } };
+	no->shape->calculateLocalInertia(no->properties.mass, no->inertia);
+	btRigidBody::btRigidBodyConstructionInfo CI {no->properties.mass, no->motion_state, no->shape, no->inertia};
 	no->body = new btRigidBody {CI};
+	
+	no->set_properties();
 	
 	if (kinematic) {
 		no->body->setCollisionFlags(no->body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
@@ -399,7 +419,7 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 	return no;
 }
 
-void Phys_Object_Get_Transform(phys_object_t * obj, phys_interactor_t * ia) {
+void Phys_Object_Get_Transform(phys_object_t * obj, phys_transform_t * ia) {
 	obj->objlock.lock();
 	btVector3 origin = obj->trans_cache.getOrigin();
 	VectorSet(ia->origin, origin.x(), origin.y(), origin.z());
@@ -408,11 +428,24 @@ void Phys_Object_Get_Transform(phys_object_t * obj, phys_interactor_t * ia) {
 	obj->objlock.unlock();
 }
 
-void Phys_Object_Set_Transform(phys_object_t * obj, phys_interactor_t const * ia) {
+void Phys_Object_Set_Transform(phys_object_t * obj, phys_transform_t const * ia) {
 	obj->objlock.lock();
 	obj->new_trans.setIdentity();
 	obj->new_trans.setOrigin( {ia->origin[0], ia->origin[1], ia->origin[2]} );
 	obj->new_trans.setRotation( btQuaternion {ia->angles[0] * d2r_mult, ia->angles[2] * d2r_mult, ia->angles[1] * d2r_mult} );
 	obj->do_trans_update = true;
+	obj->objlock.unlock();
+}
+
+void Phys_Object_Get_Properties(phys_object_t * obj, phys_properties_t * props) {
+	obj->objlock.lock();
+	*props = obj->properties;
+	obj->objlock.unlock();
+}
+
+void Phys_Object_Set_Properties(phys_object_t * obj, phys_properties_t const * props) {
+	obj->objlock.lock();
+	obj->properties = *props;
+	obj->set_properties();
 	obj->objlock.unlock();
 }
