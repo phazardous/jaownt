@@ -8,12 +8,14 @@ out = 'build'
 
 plat_linux = False
 plat_windows = False
+skip_csharp = False
 
 if sys.platform.startswith('win32') or sys.platform.startswith('msys'):
 	plat_windows = True
+	skip_csharp = True
 elif sys.platform.startswith('linux'):
 	plat_linux = True
-	
+
 module_end = "bin"
 if plat_linux:
 	module_end = 'so'
@@ -42,7 +44,7 @@ def btype_cxxflags(ctx):
 def options(opt):
 	opt.load('gcc')
 	opt.load('g++')
-	if not plat_windows: # FIXME: windows users have to manually compile sharpsv due to some weird bug I don't fully understand
+	if not skip_csharp: # FIXME: windows users have to manually compile sharpsv due to some weird bug I don't fully understand
 		opt.load('cs')
 	
 	opt.add_option('--build_type', dest='build_type', type='string', default='RELEASE', action='store', help='DEBUG, NATIVE, RELEASE')
@@ -56,7 +58,7 @@ def configure(ctx):
 	
 	ctx.load('gcc')
 	ctx.load('g++')
-	if not plat_windows: # FIXME: windows users have to manually compile sharpsv due to some weird bug I don't fully understand
+	if not skip_csharp: # FIXME: windows users have to manually compile sharpsv due to some weird bug I don't fully understand
 		ctx.load('cs')
 	
 	ctx.check(features='c cprogram', lib='z', uselib_store='ZLIB')
@@ -268,7 +270,7 @@ def build(bld):
 		rdvan.env.cxxshlib_PATTERN = '%s_x86_64.' + module_end
 	
 	### C# SCRIPTING LIBRARY ###
-	if not plat_windows: # FIXME: windows users have to manually compile sharpsv due to some weird bug I don't fully understand
+	if not skip_csharp: # FIXME: windows users have to manually compile sharpsv due to some weird bug I don't fully understand
 		monolib_files = bld.path.ant_glob('src/sharp/sharpsv/*.cs')
 		
 		monolib = bld (
