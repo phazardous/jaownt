@@ -3,6 +3,10 @@
 
 #include "qcommon/q_shared.h"
 
+extern cvar_t * phys_playerclip;
+
+void Com_Phys_Init();
+
 phys_world_t * Phys_World_Create();
 void Phys_World_Destroy(phys_world_t *);
 void Phys_World_Advance(phys_world_t * world, int time);

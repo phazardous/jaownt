@@ -34,6 +34,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <windows.h>
 #endif
 #include "sharp/sharp_public.hpp"
+#include "phys/phys_public.hpp"
 
 FILE *debuglogfile;
 fileHandle_t logfile;
@@ -1245,6 +1246,8 @@ void Com_Init( char *commandLine ) {
 
 		Sys_Init();
 		Sharp_Init();
+		
+		Com_Phys_Init();
 
 		// Pick a random port value
 		Com_RandomBytes( (byte*)&qport, sizeof(int) );

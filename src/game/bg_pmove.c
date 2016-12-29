@@ -2085,8 +2085,8 @@ static qboolean PM_CheckJump( void )
 			PM_SetAnim(SETANIM_LEGS,BOTH_FORCEJUMP1,SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD|SETANIM_FLAG_RESTART);
 		} else { //else no surf close enough to push off of
 			pm->cmd.upmove = 0;
-			pm->cmd.forwardmove *= bg_aircontrolzerog.value;
-			pm->cmd.rightmove *= bg_aircontrolzerog.value;
+			pm->cmd.forwardmove = ceil(pm->cmd.forwardmove * bg_aircontrolzerog.value);
+			pm->cmd.rightmove = ceil(pm->cmd.rightmove * bg_aircontrolzerog.value);
 		}
 	} else if ( pm->ps->gravity < 0 ) { // emulate broken old zero-or-less-gravity behavior cause it's funny
 		vec3_t	forward, back;

@@ -10,6 +10,12 @@
 
 #include <btBulletDynamicsCommon.h>
 
+cvar_t * phys_playerclip;
+
+void Com_Phys_Init() {
+	phys_playerclip = Cvar_Get("phys_playerclip", "1", CVAR_ARCHIVE | CVAR_SYSTEMINFO, "Should physics objects collide with CONTENTS_PLAYERCLIP?");
+}
+
 static constexpr float d2r_mult = 0.0174532925f;
 static constexpr float r2d_mult = 57.2957795f;
 
@@ -191,14 +197,19 @@ struct gptp_brusurf_task_data {
 };
 
 void * gptp_brush_task(void * arg) {
+	
 	gptp_brusurf_task_data * data = reinterpret_cast<gptp_brusurf_task_data *>(arg);
 	vec3_t points [BP_POINTS_SIZE];
 	int points_num;
+	
+	int content_mask = CONTENTS_SOLID;
+	if (phys_playerclip->integer) content_mask |= CONTENTS_PLAYERCLIP;
+	
 	while (true) {
 		int ib = data->brush_i--;
 		if (ib < 0) return nullptr;
 		int i = data->brushes[ib];
-		if (CM_BrushContentFlags(i) & CONTENTS_SOLID) {
+		if (CM_BrushContentFlags(i) & content_mask) {
 			points_num = CM_CalculateHull(i, points, BP_POINTS_SIZE);
 			if (points_num < 4) continue;
 			
@@ -218,13 +229,18 @@ void * gptp_brush_task(void * arg) {
 }
 
 void * gptp_surface_task(void * arg) {
+	
 	gptp_brusurf_task_data * data = reinterpret_cast<gptp_brusurf_task_data *>(arg);
 	vec3_t points [BP_POINTS_SIZE];
+	
+	int content_mask = CONTENTS_SOLID;
+	if (phys_playerclip->integer) content_mask |= CONTENTS_PLAYERCLIP;
+	
 	while (true) {
 		int pi = data->patch_i--;
 		if (pi < 0) return nullptr;
 		int i = data->patches[pi];
-		if (CM_PatchContentFlags(i) & CONTENTS_SOLID) {
+		if (CM_PatchContentFlags(i) & content_mask) {
 			int width, height;
 			CM_PatchMeshPoints(i, points, BP_POINTS_SIZE, &width, &height);
 			if (width * height < 4) continue;
