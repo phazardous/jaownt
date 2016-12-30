@@ -47,6 +47,10 @@ void G_Phys_UpdateEnt(gentity_t * ent) {
 	trap->Phys_Object_Get_Transform(ent->phys, &trans);
 	G_SetOrigin(ent, trans.origin);
 	G_SetAngles(ent, trans.angles);
+	
+	ent->s.pos.trType = TR_INTERPOLATE;
+	ent->s.apos.trType = TR_INTERPOLATE;
+	
 	trap->LinkEntity( (sharedEntity_t *) ent);
 }
 
@@ -85,12 +89,14 @@ void G_TEST_PhysTestEnt(vec3_t pos) {
 	props.mass = 500;
 	props.friction = 0.5;
 	props.restitution = 0.125;
-	props.dampening = 0;
+	props.dampening = 0.125;
 	props.token = physent;
 	
-	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, "models/testbox.obj", &trans, &props, qfalse);
+	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, "models/testbox.obj", &trans, &props, 0.25, qfalse);
 	
 	physent->s.modelindex = G_ModelIndex("models/testbox.obj");
+	physent->s.iModelScale = 25;
+	
 	G_SetOrigin(physent, pos);
 	trap->LinkEntity( (sharedEntity_t *) physent);
 }

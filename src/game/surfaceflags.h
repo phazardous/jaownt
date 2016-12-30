@@ -100,7 +100,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define SURF_UNUSED80000000		(0x80000000u) //
 
 #define MATERIAL_BITS			5
-#define MATERIAL_MASK			0x1f	// mask to get the material type
+#define MATERIAL_MASK			((1 << MATERIAL_BITS) - 1)	// mask to get the material type
 
 #define MATERIAL_NONE			0			// for when the artist hasn't set anything up =)
 #define MATERIAL_SOLIDWOOD		1			// freshly cut timber

@@ -23,6 +23,7 @@ struct phys_object_s {
 	std::mutex objlock {};
 	
 	bool do_trans_update = false;
+	
 	btTransform new_trans {};
 	btTransform trans_cache {};
 	
@@ -324,10 +325,11 @@ void Phys_World_Add_Current_Map(phys_world_t * world) {
 	world->world->addRigidBody(world->map_static_slick->body);
 }
 
-phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * path, phys_transform_t * initial_transform, phys_properties_t * properties, qboolean kinematic) {
+phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * path, phys_transform_t * initial_transform, phys_properties_t * properties, float scale, qboolean kinematic) {
 	phys_object_t * no = new phys_object_t;
 	
 	no->properties = *properties;
+	
 	btConvexHullShape * chs = new btConvexHullShape;
 
 	objSurface_t * surf = CM_LoadObj(path);
@@ -337,7 +339,9 @@ phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * p
 		chs->addPoint( {surf->verts[i*3], surf->verts[i*3+1], surf->verts[i*3+2]}, false );
 	}
 	
+	chs->setLocalScaling({scale, scale, scale});
 	chs->recalcLocalAabb();
+	
 	no->shape = chs;
 	no->motion_state = new btDefaultMotionState { btTransform { 
 		btQuaternion { initial_transform->angles[0] * d2r_mult, initial_transform->angles[2] * d2r_mult, initial_transform->angles[1] * d2r_mult }, 
@@ -369,6 +373,8 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 	int * brushes = new int [brushes_max];
 	int * patches = new int [surfaces_max];
 	CM_SubmodelIndicies(modeli, brushes, patches, &brushes_num, &surfaces_num);
+	
+	
 	
 	phys_object_t * no = new phys_object_t;
 	no->properties = *properties;
@@ -437,19 +443,25 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 
 void Phys_Object_Get_Transform(phys_object_t * obj, phys_transform_t * ia) {
 	obj->objlock.lock();
+	
 	btVector3 origin = obj->trans_cache.getOrigin();
 	VectorSet(ia->origin, origin.x(), origin.y(), origin.z());
+	
 	btMatrix3x3 { obj->trans_cache.getRotation() }.getEulerYPR(ia->angles[1], ia->angles[0], ia->angles[2]);
 	VectorScale(ia->angles, r2d_mult, ia->angles);
+	
 	obj->objlock.unlock();
 }
 
 void Phys_Object_Set_Transform(phys_object_t * obj, phys_transform_t const * ia) {
 	obj->objlock.lock();
+	
 	obj->new_trans.setIdentity();
 	obj->new_trans.setOrigin( {ia->origin[0], ia->origin[1], ia->origin[2]} );
 	obj->new_trans.setRotation( btQuaternion {ia->angles[0] * d2r_mult, ia->angles[2] * d2r_mult, ia->angles[1] * d2r_mult} );
+	
 	obj->do_trans_update = true;
+	
 	obj->objlock.unlock();
 }
 
