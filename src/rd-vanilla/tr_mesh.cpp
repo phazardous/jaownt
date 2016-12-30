@@ -423,7 +423,8 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 
 void R_AddObjSurfaces( trRefEntity_t *ent ) {
 	//int			i;
-	objSurface_t	*surf = tr.currentModel->obj;
+	objModel_t		*mod = tr.currentModel->obj;
+	objSurface_t	*surf;
 	shader_t		*shader = 0;
 	//int			cull;
 	//int			lod;
@@ -463,35 +464,39 @@ void R_AddObjSurfaces( trRefEntity_t *ent ) {
 	//
 	// draw all surfaces
 	//
-	if ( ent->e.customShader ) {
-		shader = R_GetShaderByHandle( ent->e.customShader );
-	} else if (surf->shaderIndex) {
-		shader = tr.shaders[surf->shaderIndex];
-	} else {
-		shader = tr.defaultShader;
-	}
-	// we will add shadows even if the main object isn't visible in the view
+	
+	surf = mod->surfaces;
+	for (int i = 0; i < mod->numSurfaces; surf++, i++) {
+		if ( ent->e.customShader ) {
+			shader = R_GetShaderByHandle( ent->e.customShader );
+		} else if (surf->shaderIndex) {
+			shader = tr.shaders[surf->shaderIndex];
+		} else {
+			shader = tr.defaultShader;
+		}
+		// we will add shadows even if the main object isn't visible in the view
 
-	// stencil shadows can't do personal models unless I polyhedron clip
-	if ( !personalModel
-		&& r_shadows->integer == 2
-		&& fogNum == 0
-		&& !(ent->e.renderfx & ( RF_NOSHADOW | RF_DEPTHHACK ) )
-		&& shader->sort == SS_OPAQUE ) {
-		R_AddDrawSurf( (surfaceType_t *)surf, tr.shadowShader, 0, qfalse );
-	}
+		// stencil shadows can't do personal models unless I polyhedron clip
+		if ( !personalModel
+			&& r_shadows->integer == 2
+			&& fogNum == 0
+			&& !(ent->e.renderfx & ( RF_NOSHADOW | RF_DEPTHHACK ) )
+			&& shader->sort == SS_OPAQUE ) {
+			R_AddDrawSurf( (surfaceType_t *)surf, tr.shadowShader, 0, qfalse );
+		}
 
-	// projection shadows work fine with personal models
-	if ( r_shadows->integer == 3
-		&& fogNum == 0
-		&& (ent->e.renderfx & RF_SHADOW_PLANE )
-		&& shader->sort == SS_OPAQUE ) {
-		R_AddDrawSurf( (surfaceType_t *)surf, tr.projectionShadowShader, 0, qfalse );
-	}
+		// projection shadows work fine with personal models
+		if ( r_shadows->integer == 3
+			&& fogNum == 0
+			&& (ent->e.renderfx & RF_SHADOW_PLANE )
+			&& shader->sort == SS_OPAQUE ) {
+			R_AddDrawSurf( (surfaceType_t *)surf, tr.projectionShadowShader, 0, qfalse );
+		}
 
-	// don't add third_person objects if not viewing through a portal
-	if ( !personalModel ) {
-		R_AddDrawSurf( (surfaceType_t *)surf, shader, fogNum, qfalse );
+		// don't add third_person objects if not viewing through a portal
+		if ( !personalModel ) {
+			R_AddDrawSurf( (surfaceType_t *)surf, shader, fogNum, qfalse );
+		}
 	}
 
 }

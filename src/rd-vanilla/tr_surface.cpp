@@ -1314,6 +1314,21 @@ void RB_SurfaceObj(objSurface_t * surf) {
 		vindex += 3;
 		tess.numIndexes += 3;
 		tess.numVertexes += 3;
+		
+		/*
+		Com_Printf("Obj Face:\n");
+		Com_Printf("\t{%f, %f, %f}\n", (*face)[0].vertex[0], (*face)[0].vertex[1], (*face)[0].vertex[2]);
+		Com_Printf("\t{%f, %f, %f}\n", (*face)[1].vertex[0], (*face)[1].vertex[1], (*face)[1].vertex[2]);
+		Com_Printf("\t{%f, %f, %f}\n", (*face)[2].vertex[0], (*face)[2].vertex[1], (*face)[2].vertex[2]);
+		
+		Com_Printf("\t{%f, %f}\n", (*face)[0].uv[0], (*face)[0].uv[1]);
+		Com_Printf("\t{%f, %f}\n", (*face)[1].uv[0], (*face)[1].uv[1]);
+		Com_Printf("\t{%f, %f}\n", (*face)[2].uv[0], (*face)[2].uv[1]);
+		
+		Com_Printf("\t{%f, %f, %f}\n", (*face)[0].normal[0], (*face)[0].normal[1], (*face)[0].normal[2]);
+		Com_Printf("\t{%f, %f, %f}\n", (*face)[1].normal[0], (*face)[1].normal[1], (*face)[1].normal[2]);
+		Com_Printf("\t{%f, %f, %f}\n", (*face)[2].normal[0], (*face)[2].normal[1], (*face)[2].normal[2]);
+		*/
 	}
 }
 

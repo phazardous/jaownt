@@ -187,20 +187,23 @@ typedef objElement_t objFace_t[3];
 
 typedef struct objSurface_s {
 	int					ident;
-	char				name[MAX_QPATH];
 	char				shader[MAX_QPATH];
 	int					shaderIndex;
+	int					numFaces;
+	objFace_t *			faces;
+} objSurface_t;
+
+typedef struct objModel_s {
+	char				name[MAX_QPATH];
 	int					numVerts;
 	int					numUVs;
 	int					numNormals;
-	int					numFaces;
+	int 				numSurfaces;
 	float *				verts;
 	float *				UVs;
 	float *				normals;
-	objFace_t *			faces;
-
-} objSurface_t;
-
+	objSurface_t * 		surfaces;
+} objModel_t;
 
 /*
 ==============================================================================

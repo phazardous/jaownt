@@ -92,10 +92,9 @@ void G_TEST_PhysTestEnt(vec3_t pos) {
 	props.dampening = 0.125;
 	props.token = physent;
 	
-	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, "models/testbox.obj", &trans, &props, 0.25, qfalse);
+	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, "models/testbox2.obj", &trans, &props, 1, qfalse);
 	
-	physent->s.modelindex = G_ModelIndex("models/testbox.obj");
-	physent->s.iModelScale = 25;
+	physent->s.modelindex = G_ModelIndex("models/testbox2.obj");
 	
 	G_SetOrigin(physent, pos);
 	trap->LinkEntity( (sharedEntity_t *) physent);

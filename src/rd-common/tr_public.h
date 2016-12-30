@@ -346,7 +346,7 @@ typedef struct refimport_s {
 	bool			(*PD_Store)							( const char *name, const void *data, size_t size );
 	const void *	(*PD_Load)							( const char *name, size_t *size );
 	
-	objSurface_t * (*CM_LoadObj)						( char const * name);
+	objModel_t * (*CM_LoadObj)							( char const * name);
 } refimport_t;
 
 // this is the only function actually exported at the linker level

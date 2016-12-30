@@ -2,10 +2,10 @@
 
 #include <vector>
 
-static std::vector<objSurface_t *> loaded_surfaces;
+static std::vector<objModel_t *> loaded_models;
 
 int CM_GetModelVerticies(char const * name, vec3_t * points, int points_num) {
-	objSurface_t * surf = CM_LoadObj(name);
+	objModel_t * surf = CM_LoadObj(name);
 	if (!surf) return -1;
 	int p = 0;
 	for (int v = 0; v < surf->numVerts && p < points_num; v+=3, p++) {
@@ -16,12 +16,21 @@ int CM_GetModelVerticies(char const * name, vec3_t * points, int points_num) {
 	return p;
 }
 
-static void CM_FreeObj(objSurface_t * surf) {
-	if (surf->numVerts) delete[] surf->verts;
-	if (surf->numUVs) delete[] surf->UVs;
-	if (surf->numNormals) delete[] surf->normals;
-	if (surf->faces) delete[] surf->faces;
+/* FIXME -- should be used when loaded_models is cleared!
+static void CM_FreeObj(objModel_t * mod) {
+	
+	if (mod->numVerts) delete [] mod->verts;
+	if (mod->numUVs) delete [] mod->UVs;
+	if (mod->numNormals) delete [] mod->normals;
+	
+	if (mod->numSurfaces) {
+		for (int i = 0; i < mod->numSurfaces; i++) {
+			if (mod->surfaces[i].numFaces) delete [] mod->surfaces[i].faces;
+		}
+		delete [] mod->surfaces;
+	}
 }
+*/
 
 float nullVerts[] = {
 	0.0f, 0.0f, 0.0f,
@@ -43,109 +52,127 @@ float nullNormals[] = {
 #define CMD_BUF_LEN 12
 #define FLOAT_BUF_LEN 15
 
-typedef struct objIndex_s{
-	int vi = 0;
-	int uvi = 0;
-	int ni = 0;
-} objIndex_t;
-
 char const defaultShader[] = "textures/colors/c_grey";
 
-objSurface_t * CM_LoadObj(char const * name) {
-	for (objSurface_t * surf : loaded_surfaces) {
-		if (!strcmp(surf->name, name)) return surf;
+objModel_t * CM_LoadObj(char const * name) {
+	
+	for (objModel_t * mod : loaded_models) {
+		if (!strcmp(mod->name, name)) return mod;
 	}
+	
 	fileHandle_t file;
 	long len = FS_FOpenFileRead(name, &file, qfalse);
+	
 	if (len < 0) return nullptr;
 	if (len == 0) {
 		FS_FCloseFile(file);
 		return nullptr;
 	}
-	char * buf = new char[len]();
-	FS_Read(buf, len, file);
+	
+	char * obj_buf = new char[len];
+	FS_Read(obj_buf, len, file);
 	FS_FCloseFile(file);
-	objSurface_t * surf = new objSurface_t;
-	float * verts = new float[OBJ_MAX_INDICIES * 3]();
-	unsigned int verts_index = 0;
-	surf->verts = verts;
-	float * uvs = new float[OBJ_MAX_INDICIES * 2]();
-	unsigned int uvs_index = 0;
-	surf->UVs = uvs;
-	float * normals = new float[OBJ_MAX_INDICIES * 3]();
-	unsigned int normals_index = 0;
-	surf->normals = normals;
-	std::vector<objIndex_t> indicies;
+	
+	//objModel_t * mod = new objModel_t {};
+	
+	struct objWorkElement {
+		int vert = 0;
+		int uv = 0;
+		int normal = 0;
+	};
+	
+	struct objWorkFace {
+		objWorkElement elements [3];
+	};
+	
+	struct objWorkSurface {
+		char shader[MAX_QPATH];
+		int shaderIndex = 0;
+		std::vector<objWorkFace> faces;
+	};
+	
+	std::vector<float> verts;
+	std::vector<float> uvs;
+	std::vector<float> normals;
+	std::vector<objWorkSurface> surfs;
+
 	bool all_good = true;
-	long i = 0;
 	bool seekline = false;
-	char * shader = nullptr;
-	while (i < len && all_good) {
-		switch (buf[i]) {
+	long obj_buf_i = 0;
+	
+	while (obj_buf_i < len && all_good) {
+		
+		switch (obj_buf[obj_buf_i]) {
 		case '\r':
-			i++;
+			obj_buf_i++;
 			continue;
 		case '\n':
-			i++;
+			obj_buf_i++;
 			seekline = false;
 			continue;
 		case '\0':
 			all_good = false;
 			continue;
 		case '#':
-			i++;
+			obj_buf_i++;
 			seekline = true;
 			continue;
 		default:
 			if (seekline) {
-				i++;
+				obj_buf_i++;
 				continue;
 			}
 			break;
 		}
+		
 		char cmd_buf[CMD_BUF_LEN];
 		int ci;
 		for (ci = 0; ci < CMD_BUF_LEN; ci++) {
-			switch(buf[i+ci]) {
+			switch(obj_buf[obj_buf_i+ci]) {
 			case ' ':
 				cmd_buf[ci] = '\0';
 				break;
 			default:
-				cmd_buf[ci] = buf[i+ci];
+				cmd_buf[ci] = obj_buf[obj_buf_i+ci];
 				continue;
 			}
 			break;
 		}
+		
 		if (ci == CMD_BUF_LEN) {
 			all_good = false;
 			break;
 		} else {
-			i += ci + 1;
+			obj_buf_i += ci + 1;
 		}
-		if (!strcmp(cmd_buf, "v")) {
+		
+		if (!strcmp(cmd_buf, "o")) {
+			surfs.emplace_back();
+			seekline = true;
+			continue;
+		} else if (!strcmp(cmd_buf, "v")) {
 			char float_buf[FLOAT_BUF_LEN];
 			for (int v = 0; v < 3; v++) {
 				int vi;
 				for(vi = 0; vi < FLOAT_BUF_LEN; vi++) {
-					switch(buf[i + vi]) {
+					switch(obj_buf[obj_buf_i + vi]) {
 					case '\r':
 					case '\n':
 					case ' ':
 						float_buf[vi] = '\0';
 						break;
 					default:
-						float_buf[vi] = buf[i+vi];
+						float_buf[vi] = obj_buf[obj_buf_i+vi];
 						continue;
 					}
 					break;
 				}
-				i += vi + 1;
+				obj_buf_i += vi + 1;
 				float val = strtod(float_buf, nullptr);
-				verts[verts_index] = val;
-				verts_index++;
+				verts.push_back(val);
 				memset(float_buf, FLOAT_BUF_LEN, sizeof(char));
 			}
-			i-=2;
+			obj_buf_i -= 2;
 			seekline = true;
 			continue;
 		} else if (!strcmp(cmd_buf, "vn")) {
@@ -153,25 +180,24 @@ objSurface_t * CM_LoadObj(char const * name) {
 				for (int v = 0; v < 3; v++) {
 					int vi;
 					for(vi = 0; vi < FLOAT_BUF_LEN; vi++) {
-						switch(buf[i + vi]) {
+						switch(obj_buf[obj_buf_i + vi]) {
 						case '\r':
 						case '\n':
 						case ' ':
 							float_buf[vi] = '\0';
 							break;
 						default:
-							float_buf[vi] = buf[i+vi];
+							float_buf[vi] = obj_buf[obj_buf_i+vi];
 							continue;
 						}
 						break;
 					}
-					i += vi + 1;
+					obj_buf_i += vi + 1;
 					float val = strtod(float_buf, nullptr);
-					normals[normals_index] = val;
-					normals_index++;
+					normals.push_back(val);
 					memset(float_buf, FLOAT_BUF_LEN, sizeof(char));
 				}
-				i-=2;
+				obj_buf_i -= 2;
 				seekline = true;
 				continue;
 		} else if (!strcmp(cmd_buf, "vt")) {
@@ -179,36 +205,37 @@ objSurface_t * CM_LoadObj(char const * name) {
 			for (int v = 0; v < 2; v++) {
 				int vi;
 				for(vi = 0; vi < FLOAT_BUF_LEN; vi++) {
-					switch(buf[i + vi]) {
+					switch(obj_buf[obj_buf_i + vi]) {
 					case '\r':
 					case '\n':
 					case ' ':
 						float_buf[vi] = '\0';
 						break;
 					default:
-						float_buf[vi] = buf[i+vi];
+						float_buf[vi] = obj_buf[obj_buf_i+vi];
 						continue;
 					}
 					break;
 				}
-				i += vi + 1;
+				obj_buf_i += vi + 1;
 				float val = strtod(float_buf, nullptr);
 				if (v) val = 1 - val;
-				uvs[uvs_index] = val;
-				uvs_index++;
+				uvs.push_back(val);
 				memset(float_buf, FLOAT_BUF_LEN, sizeof(char));
 			}
-			i-=2;
+			obj_buf_i -= 2;
 			seekline = true;
 			continue;
 		} else if (!strcmp(cmd_buf, "f")) {
+			objWorkSurface & cursurf = surfs.back();
+			objWorkFace face;
 			for (int fi = 0; fi < 3; fi++) {
-				objIndex_t face;
+				objWorkElement element;
 				char int_buf[FLOAT_BUF_LEN];
 				for (int v = 0; v < 3; v++) {
 					int vi;
 					for(vi = 0; vi < FLOAT_BUF_LEN; vi++) {
-						switch(buf[i + vi]) {
+						switch(obj_buf[obj_buf_i + vi]) {
 						case '\r':
 						case '\n':
 						case ' ':
@@ -220,62 +247,61 @@ objSurface_t * CM_LoadObj(char const * name) {
 							int_buf[vi] = '\0';
 							break;
 						default:
-							int_buf[vi] = buf[i+vi];
+							int_buf[vi] = obj_buf[obj_buf_i+vi];
 							continue;
 						}
 						break;
 					}
-					i += vi + 1;
+					obj_buf_i += vi + 1;
 					int val = strtol(int_buf, nullptr, 10) - 1;
 					switch(v) {
 					case 0:
 					case 3:
-						face.vi = val;
+						element.vert = val;
 					case 1:
 					case 4:
-						face.uvi = val;
+						element.uv = val;
 					case 2:
 					case 5:
-						face.ni = val;
+						element.normal = val;
 					}
 					memset(int_buf, FLOAT_BUF_LEN, sizeof(char));
 				}
-				indicies.push_back(face);
+				face.elements[fi] = element;
 			}
-			i-=2;
+			cursurf.faces.push_back(face);
+			obj_buf_i -= 2;
 			seekline = true;
 			continue;
 		} else if (!strcmp(cmd_buf, "usemtl")) {
+			objWorkSurface & cursurf = surfs.back();
 			char nam_buf[MAX_QPATH];
 			memset(nam_buf, '\0', MAX_QPATH);
 			int ci = 0;
 			while (true) {
 				if (ci >= MAX_QPATH) Com_Error(ERR_DROP, "Obj model shader field exceeds MAX_QPATH(%i)", int(MAX_QPATH));
-				switch(buf[i]) {
+				switch(obj_buf[obj_buf_i]) {
 				case '\r':
 				case '\n':
 				case ' ':
 					nam_buf[ci++] = '\0';
-					i++;
+					obj_buf_i++;
 					break;
 				case '\\':
 					nam_buf[ci++] = '\0';
-					i++;
+					obj_buf_i++;
 					break;
 				default:
-					nam_buf[ci++] = buf[i];
-					i++;
+					nam_buf[ci++] = obj_buf[obj_buf_i];
+					obj_buf_i++;
 					continue;
 				}
 				break;
 			}
 
-			if (shader) delete [] shader;
-			shader = new char [strlen(nam_buf) + 1];
-			strcpy(shader, nam_buf);
-			shader[strlen(nam_buf)] = '\0';
+			strcpy(cursurf.shader, nam_buf);
 
-			i-=2;
+			obj_buf_i -= 2;
 			seekline = true;
 			continue;
 		} else {
@@ -283,57 +309,62 @@ objSurface_t * CM_LoadObj(char const * name) {
 			continue;
 		}
 	}
-	delete[] buf;
+	
 	if (all_good) {
-		/*
-		Com_Printf("Obj Load Successful.");
-		Com_Printf("Verts: %i\n", verts_index);
-		for (size_t vs = 0; vs < verts_index; vs+=3) {
-			Com_Printf("%i: (%f, %f, %f)\n", vs/3, verts[vs+0], verts[vs+1], verts[vs+2]);
-		}
-		Com_Printf("UVs: %i\n", uvs_index);
-		for (size_t vs = 0; vs < uvs_index; vs+=2) {
-			Com_Printf("%i: (%f, %f)\n", vs/2, uvs[vs+0], uvs[vs+1]);
-		}
-		Com_Printf("Normals: %i\n", normals_index);
-		for (size_t vs = 0; vs < normals_index; vs+=3) {
-			Com_Printf("%i: (%f, %f, %f)\n", vs/3, normals[vs+0], normals[vs+1], normals[vs+2]);
-		}
-		Com_Printf("Faces: %i\n", (int)indicies.size());
-		int fi = 0;
-		for (objIndex_t const & face : indicies) {
-			Com_Printf("%i: (%i, %i, %i)\n", fi, face.vi, face.uvi, face.ni);
-			fi++;
-		}
-		*/
 	} else {
 		Com_Printf("Obj Load Failed.\n");
-		CM_FreeObj(surf);
 		return nullptr;
 	}
-
-	if (verts_index) surf->verts = verts; else surf->verts = nullVerts;
-	surf->numVerts = verts_index;
-	if (uvs_index) surf->UVs = uvs; else surf->UVs = nullUVs;
-	surf->numUVs = uvs_index;
-	if (normals_index) surf->normals = normals; else surf->normals = nullNormals;
-	surf->numNormals = normals_index;
-	surf->numFaces = indicies.size() / 3;
-	objFace_t * faces = new objFace_t[surf->numFaces];
-	//assert(surf->numFaces % 3 == 0);
-	for (int f = 0; f < surf->numFaces; f++) {
-		for (int fi = 0; fi < 3; fi++) {
-			objIndex_t const & index = indicies.at((3 *f)+ (2 - fi));
-			faces[f][fi].vertex = surf->verts + (index.vi * 3);
-			faces[f][fi].uv = surf->UVs + (index.uvi * 2);
-			faces[f][fi].normal = surf->normals + (index.ni * 3);
+	
+	objModel_t * mod = new objModel_t;
+	
+	mod->numVerts = verts.size();
+	mod->verts = new float [mod->numVerts];
+	memcpy(mod->verts, verts.data(), mod->numVerts * sizeof(float));
+	
+	mod->numUVs = uvs.size();
+	mod->UVs = new float [mod->numUVs];
+	memcpy(mod->UVs, uvs.data(), mod->numUVs * sizeof(float));
+	
+	mod->numNormals = normals.size();
+	mod->normals = new float [mod->numNormals];
+	memcpy(mod->normals, normals.data(), mod->numNormals * sizeof(float));
+	
+	mod->numVerts /= 3;
+	mod->numUVs /= 2;
+	mod->numNormals /= 3;
+	
+	mod->numSurfaces = surfs.size();
+	mod->surfaces = new objSurface_t [mod->numSurfaces];
+	for (int s = 0; s < mod->numSurfaces; s++) {
+		
+		objSurface_t & surfTo = mod->surfaces[s];
+		objWorkSurface & surfFrom = surfs[s];
+		
+		if (strlen(surfFrom.shader)) strcpy(surfTo.shader, surfFrom.shader);
+		else strcpy(surfTo.shader, defaultShader);
+		surfTo.shaderIndex = surfFrom.shaderIndex;
+		
+		surfTo.numFaces = surfFrom.faces.size();
+		surfTo.faces = new objFace_t [surfTo.numFaces];
+		for (int f = 0; f < surfTo.numFaces; f++) {
+			
+			objFace_t & faceT = surfTo.faces[f];
+			objWorkFace & faceF = surfFrom.faces[f];
+			
+			faceT[0].vertex = &mod->verts[faceF.elements[2].vert * 3];
+			faceT[1].vertex = &mod->verts[faceF.elements[1].vert * 3];
+			faceT[2].vertex = &mod->verts[faceF.elements[0].vert * 3];
+			
+			faceT[0].uv = &mod->UVs[faceF.elements[2].uv * 2];
+			faceT[1].uv = &mod->UVs[faceF.elements[1].uv * 2];
+			faceT[2].uv = &mod->UVs[faceF.elements[0].uv * 2];
+			
+			faceT[0].normal = &mod->normals[faceF.elements[2].normal * 3];
+			faceT[1].normal = &mod->normals[faceF.elements[1].normal * 3];
+			faceT[2].normal = &mod->normals[faceF.elements[0].normal * 3];
 		}
 	}
-	surf->faces = faces;
-	memcpy(surf->name, name, strlen(name) + 1);
-	loaded_surfaces.push_back(surf);
-	if (shader) strcpy(surf->shader, shader);
-	else memcpy(surf->shader, defaultShader, sizeof(defaultShader));
-
-	return surf;
+	
+	return mod;
 }

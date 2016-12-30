@@ -222,7 +222,7 @@ void * gptp_brush_task(void * arg) {
 			}
 			chs->recalcLocalAabb();
 			data->objmut.lock();
-			if (CM_BrushOverallFlags(i) & SURF_SLICK) data->css->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} }, chs );
+			if (CM_BrushOverallFlags(i) & SURF_SLICK) data->css->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
 			else data->cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} }, chs );
 			data->objmut.unlock();
 		}
@@ -257,7 +257,7 @@ void * gptp_surface_task(void * arg) {
 					
 					chs->recalcLocalAabb();
 					data->objmut.lock();
-					if (CM_PatchSurfaceFlags(i) & SURF_SLICK) data->css->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} }, chs );
+					if (CM_PatchSurfaceFlags(i) & SURF_SLICK) data->css->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
 					else data->cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} }, chs );
 					data->objmut.unlock();
 				}
@@ -329,20 +329,43 @@ phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * p
 	phys_object_t * no = new phys_object_t;
 	
 	no->properties = *properties;
-	
-	btConvexHullShape * chs = new btConvexHullShape;
 
-	objSurface_t * surf = CM_LoadObj(path);
-	if (!surf) return nullptr;
+	objModel_t * mod = CM_LoadObj(path);
+	if (!mod) return nullptr;
 	
-	for (int i = 0; i < surf->numVerts; i++) {
-		chs->addPoint( {surf->verts[i*3], surf->verts[i*3+1], surf->verts[i*3+2]}, false );
+	if (mod->numSurfaces > 1) {
+		
+		btCompoundShape * cps = new btCompoundShape;
+		no->is_compound = true;
+		
+		for (int s = 0; s < mod->numSurfaces; s++) {
+			
+			btConvexHullShape * chs = new btConvexHullShape;
+			for (int i = 0; i < mod->surfaces[s].numFaces; i++) {
+				chs->addPoint( {mod->surfaces[s].faces[i][0].vertex[0], mod->surfaces[s].faces[i][0].vertex[1], mod->surfaces[s].faces[i][0].vertex[2]}, false );
+				chs->addPoint( {mod->surfaces[s].faces[i][1].vertex[0], mod->surfaces[s].faces[i][1].vertex[1], mod->surfaces[s].faces[i][1].vertex[2]}, false );
+				chs->addPoint( {mod->surfaces[s].faces[i][2].vertex[0], mod->surfaces[s].faces[i][2].vertex[1], mod->surfaces[s].faces[i][2].vertex[2]}, false );
+			}
+			
+			chs->recalcLocalAabb();
+			cps->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} }, chs );
+		}
+		cps->setLocalScaling({scale, scale, scale});
+		cps->recalculateLocalAabb();
+		no->shape = cps;
+		
+	} else {
+		
+		btConvexHullShape * chs = new btConvexHullShape;
+		
+		for (int i = 0; i < mod->numVerts; i++) {
+			chs->addPoint( {mod->verts[i*3], mod->verts[i*3+1], mod->verts[i*3+2]}, false );
+		}
+		chs->setLocalScaling({scale, scale, scale});
+		chs->recalcLocalAabb();
+		no->shape = chs;
 	}
 	
-	chs->setLocalScaling({scale, scale, scale});
-	chs->recalcLocalAabb();
-	
-	no->shape = chs;
 	no->motion_state = new btDefaultMotionState { btTransform { 
 		btQuaternion { initial_transform->angles[0] * d2r_mult, initial_transform->angles[2] * d2r_mult, initial_transform->angles[1] * d2r_mult }, 
 		btVector3 {initial_transform->origin[0], initial_transform->origin[1], initial_transform->origin[2]} } };

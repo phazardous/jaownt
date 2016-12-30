@@ -1631,12 +1631,14 @@ static qboolean R_LoadObj (model_t *mod, char const * name) {
 	mod->type = MOD_OBJ;
 	mod->obj = ri->CM_LoadObj(name);
 	if (!mod->obj) return qfalse;
-	mod->obj->ident = SF_OBJ;
-	shader_t * sh = R_FindShader( mod->obj->shader, lightmapsNone, stylesDefault, qtrue );
-	if ( sh->defaultShader ) {
-		mod->obj->shaderIndex = 0;
-	} else {
-		mod->obj->shaderIndex = sh->index;
+	for (int i = 0; i < mod->obj->numSurfaces; i++) {
+		mod->obj->surfaces[i].ident = SF_OBJ;
+		shader_t * sh = R_FindShader( mod->obj->surfaces[i].shader, lightmapsNone, stylesDefault, qtrue );
+		if ( sh->defaultShader ) {
+			mod->obj->surfaces[i].shaderIndex = 0;
+		} else {
+			mod->obj->surfaces[i].shaderIndex = sh->index;
+		}
 	}
 	return qtrue;
 }

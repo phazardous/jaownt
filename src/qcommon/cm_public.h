@@ -94,4 +94,4 @@ void CM_SubmodelIndicies(int submodel, int * brushes, int * patches, int * brush
 
 // cm_obj.cpp
 int CM_GetModelVerticies(char const * name, vec3_t * points, int points_num);
-objSurface_t * CM_LoadObj(char const * name);
+objModel_t * CM_LoadObj(char const * name);
