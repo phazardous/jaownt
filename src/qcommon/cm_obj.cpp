@@ -366,5 +366,7 @@ objModel_t * CM_LoadObj(char const * name) {
 		}
 	}
 	
+	loaded_models.push_back(mod);
+	
 	return mod;
 }

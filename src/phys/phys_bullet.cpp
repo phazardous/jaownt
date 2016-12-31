@@ -6,6 +6,7 @@
 #include <mutex>
 #include <thread>
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 #include <btBulletDynamicsCommon.h>
@@ -18,6 +19,8 @@ void Com_Phys_Init() {
 
 static constexpr float d2r_mult = 0.0174532925f;
 static constexpr float r2d_mult = 57.2957795f;
+
+static std::unordered_map<btDynamicsWorld const *, phys_world_t *> world_map;
 
 struct phys_object_s {
 	std::mutex objlock {};
@@ -42,6 +45,7 @@ struct phys_object_s {
 		body->setDamping(properties.dampening, properties.dampening);
 		body->setFriction(properties.friction);
 		body->setRestitution(properties.restitution);
+		body->setSleepingThresholds(20.f, 20.f);
 	}
 	
 	~phys_object_s() {
@@ -69,6 +73,7 @@ struct phys_world_s {
 	int step_resolution = 120;
 	
 	std::unordered_set<phys_object_t *> objects;
+	std::unordered_map<btCollisionObject const *, phys_object_t *> object_map;
 	
 	phys_object_t * map_static = nullptr;
 	phys_object_t * map_static_slick = nullptr;
@@ -103,7 +108,57 @@ struct phys_world_s {
 };
 
 static void bullet_world_substep_cb(btDynamicsWorld *world, btScalar timeStep) {
-
+	
+	phys_world_t * this_world = nullptr;
+	{
+		auto iter = world_map.find(world);
+		if (iter == world_map.end()) return; 
+		this_world = iter->second;
+	}
+	
+	int numManifolds = world->getDispatcher()->getNumManifolds();
+	for (int i=0;i<numManifolds;i++) {
+		btPersistentManifold* contactManifold =  world->getDispatcher()->getManifoldByIndexInternal(i);
+		int numContacts = contactManifold->getNumContacts();
+		if (!numContacts) continue;
+		
+		btCollisionObject const * obA = static_cast<btCollisionObject const *>(contactManifold->getBody0());
+		btCollisionObject const * obB = static_cast<btCollisionObject const *>(contactManifold->getBody1());
+		
+		phys_object_t * pA = nullptr;
+		phys_object_t * pB = nullptr;
+		
+		{
+			if (obA == this_world->map_static->body) {
+				pA = this_world->map_static;
+			} else if (obA == this_world->map_static_slick->body) {
+				pA = this_world->map_static_slick;
+			} else {
+				auto iter = this_world->object_map.find(obA);
+				if (iter == this_world->object_map.end()) continue; 
+				pA = iter->second;
+			}
+		}
+		{
+			if (obB == this_world->map_static->body) {
+				pB = this_world->map_static;
+			} else if (obB == this_world->map_static_slick->body) {
+				pB = this_world->map_static_slick;
+			} else {
+				auto iter = this_world->object_map.find(obB);
+				if (iter == this_world->object_map.end()) continue; 
+				pB = iter->second;
+			}
+		}
+		
+		pA->objlock.lock();
+		pB->objlock.lock();
+		
+		// TODO -- WORLD INTERACTION CALLBACK
+		
+		pA->objlock.unlock();
+		pB->objlock.unlock();
+	}
 }
 
 static void bullet_world_thread_loop(phys_world_t * w) {
@@ -132,7 +187,7 @@ static void bullet_world_thread_loop(phys_world_t * w) {
 		
 		for (phys_object_t * obj : w->objects) {
 			obj->objlock.lock();
-			obj->body->getMotionState()->getWorldTransform(obj->trans_cache);
+			obj->motion_state->getWorldTransform(obj->trans_cache);
 			obj->objlock.unlock();
 		}
 		w->simlock.unlock();
@@ -155,10 +210,13 @@ phys_world_t * Phys_World_Create() {
 
 	nw->thr = new std::thread {bullet_world_thread_loop, nw};
 	
+	world_map[nw->world] = nw;
+	
 	return nw;
 }
 
 void Phys_World_Destroy(phys_world_t * w) {
+	world_map.erase(w->world);
 	delete w;
 }
 
@@ -223,7 +281,7 @@ void * gptp_brush_task(void * arg) {
 			chs->recalcLocalAabb();
 			data->objmut.lock();
 			if (CM_BrushOverallFlags(i) & SURF_SLICK) data->css->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
-			else data->cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} }, chs );
+			else data->cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
 			data->objmut.unlock();
 		}
 	}
@@ -258,7 +316,7 @@ void * gptp_surface_task(void * arg) {
 					chs->recalcLocalAabb();
 					data->objmut.lock();
 					if (CM_PatchSurfaceFlags(i) & SURF_SLICK) data->css->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
-					else data->cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} }, chs );
+					else data->cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
 					data->objmut.unlock();
 				}
 			}
@@ -307,7 +365,7 @@ void Phys_World_Add_Current_Map(phys_world_t * world) {
 	world->map_static->is_compound = true;
 	btd.cs->recalculateLocalAabb();
 	world->map_static->shape = btd.cs;
-	world->map_static->motion_state = new btDefaultMotionState { btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} } };
+	world->map_static->motion_state = new btDefaultMotionState { btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} } };
 	world->map_static->shape->calculateLocalInertia(0, world->map_static->inertia);
 	btRigidBody::btRigidBodyConstructionInfo CI {0, world->map_static->motion_state, world->map_static->shape, world->map_static->inertia};
 	world->map_static->body = new btRigidBody {CI};
@@ -317,12 +375,21 @@ void Phys_World_Add_Current_Map(phys_world_t * world) {
 	world->map_static_slick->is_compound = true;
 	btd.css->recalculateLocalAabb();
 	world->map_static_slick->shape = btd.css;
-	world->map_static_slick->motion_state = new btDefaultMotionState { btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} } };
+	world->map_static_slick->motion_state = new btDefaultMotionState { btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} } };
 	world->map_static_slick->shape->calculateLocalInertia(0, world->map_static_slick->inertia);
 	btRigidBody::btRigidBodyConstructionInfo CIS {0, world->map_static_slick->motion_state, world->map_static_slick->shape, world->map_static_slick->inertia};
 	world->map_static_slick->body = new btRigidBody {CIS};
 	world->map_static_slick->body->setFriction(0);
 	world->world->addRigidBody(world->map_static_slick->body);
+}
+
+static void bullet_world_add_object(phys_world_t * w, phys_object_t * obj) {
+	w->simlock.lock();
+	w->world->addRigidBody(obj->body);
+	w->objects.insert(obj);
+	w->object_map[obj->body] = obj;
+	obj->trans_cache = obj->body->getWorldTransform();
+	w->simlock.unlock();
 }
 
 phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * path, phys_transform_t * initial_transform, phys_properties_t * properties, float scale, qboolean kinematic) {
@@ -348,7 +415,7 @@ phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * p
 			}
 			
 			chs->recalcLocalAabb();
-			cps->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} }, chs );
+			cps->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
 		}
 		cps->setLocalScaling({scale, scale, scale});
 		cps->recalculateLocalAabb();
@@ -380,11 +447,7 @@ phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * p
 		no->body->setActivationState(DISABLE_DEACTIVATION);
 	}
 	
-	world->simlock.lock();
-	world->world->addRigidBody(no->body);
-	world->objects.insert(no);
-	no->trans_cache = no->body->getWorldTransform();
-	world->simlock.unlock();
+	bullet_world_add_object(world, no);
 	
 	return no;
 }
@@ -414,7 +477,7 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 			chs->addPoint(vec, false);
 		}
 		chs->recalcLocalAabb();
-		cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} }, chs );
+		cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
 	}
 	
 	for (int i = 0; i < surfaces_num; i++) {
@@ -433,13 +496,13 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 					chs->recalcLocalAabb();
 					
 					chs->recalcLocalAabb();
-					cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, -1} }, chs );
+					cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
 				}
 			}
 		}
 	}
 	
-	cs->recalculateLocalAabb();
+// 	cs->recalculateLocalAabb();
 	no->shape = cs;
 	no->motion_state = new btDefaultMotionState { btTransform { 
 		btQuaternion { initial_transform->angles[0] * d2r_mult, initial_transform->angles[2] * d2r_mult, initial_transform->angles[1] * d2r_mult }, 
@@ -455,11 +518,7 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 		no->body->setActivationState(DISABLE_DEACTIVATION);
 	}
 	
-	world->simlock.lock();
-	world->world->addRigidBody(no->body);
-	world->objects.insert(no);
-	no->trans_cache = no->body->getWorldTransform();
-	world->simlock.unlock();
+	bullet_world_add_object(world, no);
 	
 	return no;
 }

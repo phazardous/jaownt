@@ -3596,6 +3596,38 @@ static void Cmd_Testbox_f( gentity_t * ent ) {
 	G_TEST_PhysTestEnt(ent->r.currentOrigin);
 }
 
+static void Cmd_Dance_f ( gentity_t * ent ) { //FIXME: figure out how to set animations from here
+	ent->client->legsAnimExecute = BOTH_A7_KICK_F_AIR;
+	ent->client->torsoAnimExecute = BOTH_A7_KICK_F_AIR;
+}
+
+static void Cmd_Q_f( gentity_t * ent ) { //TODO: Q cmd
+	
+}
+
+static void Cmd_Qui_f( gentity_t * ent ) {
+	if (trap->Argc() < 2) {
+		trap->SendServerCommand( ent-g_entities, "print \"qui who?\n\"" );
+		return;
+	}
+	char gon[MAX_STRING_CHARS];
+	trap->Argv(1, gon, MAX_STRING_CHARS);
+	if (strcmp(gon, "gon")) {
+		trap->SendServerCommand( ent-g_entities, va("print \"qui %s? who's that...\n\"", gon) );
+		return;
+	}
+	if (trap->Argc() < 3) {
+		trap->SendServerCommand( ent-g_entities, "print \"qui gon who?\n\"" );
+		return;
+	}
+	trap->Argv(2, gon, MAX_STRING_CHARS);
+	if (strcmp(gon, "jinn")) {
+		trap->SendServerCommand( ent-g_entities, va("print \"qui gon %s? who's that...\n\"", gon) );
+		return;
+	}
+	G_Kill( ent );
+}
+
 /*
 =================
 ClientCommand
@@ -3620,6 +3652,7 @@ command_t commands[] = {
 	{ "addbot",				Cmd_AddBot_f,				0 },
 	{ "callteamvote",		Cmd_CallTeamVote_f,			CMD_NOINTERMISSION },
 	{ "callvote",			Cmd_CallVote_f,				CMD_NOINTERMISSION },
+	{ "dance",				Cmd_Dance_f,				CMD_ALIVE|CMD_NOINTERMISSION },
 	{ "debugBMove_Back",	Cmd_BotMoveBack_f,			CMD_CHEAT|CMD_ALIVE },
 	{ "debugBMove_Forward",	Cmd_BotMoveForward_f,		CMD_CHEAT|CMD_ALIVE },
 	{ "debugBMove_Left",	Cmd_BotMoveLeft_f,			CMD_CHEAT|CMD_ALIVE },
@@ -3643,6 +3676,8 @@ command_t commands[] = {
 	{ "noclip",				Cmd_Noclip_f,				CMD_CHEAT|CMD_ALIVE|CMD_NOINTERMISSION },
 	{ "notarget",			Cmd_Notarget_f,				CMD_CHEAT|CMD_ALIVE|CMD_NOINTERMISSION },
 	{ "npc",				Cmd_NPC_f,					CMD_CHEAT|CMD_ALIVE },
+	{ "q",					Cmd_Q_f,					CMD_ALIVE|CMD_NOINTERMISSION },
+	{ "qui",				Cmd_Qui_f,					CMD_ALIVE|CMD_NOINTERMISSION },
 	{ "say",				Cmd_Say_f,					0 },
 	{ "say_team",			Cmd_SayTeam_f,				0 },
 	{ "score",				Cmd_Score_f,				0 },

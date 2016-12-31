@@ -77,6 +77,12 @@ void G_Phys_AddBMover(gentity_t * mover) {
 	mover->phys = trap->Phys_Object_Create_From_BModel(gworld, bmodi, &trans, &props, qtrue);
 }
 
+static char const * testmodels [] = {
+	"models/testbox.obj",
+	"models/testbox2.obj"
+};
+static size_t const testmodels_num = sizeof(testmodels) / sizeof(char const *);
+
 void G_TEST_PhysTestEnt(vec3_t pos) {
 	gentity_t * physent = G_Spawn();
 	physent->s.eType = ET_GENERAL;
@@ -86,15 +92,16 @@ void G_TEST_PhysTestEnt(vec3_t pos) {
 	VectorCopy(pos, trans.origin);
 	VectorClear(trans.angles);
 	
+	size_t testm_i = rand() % testmodels_num;
+	
 	props.mass = 500;
 	props.friction = 0.5;
 	props.restitution = 0.125;
 	props.dampening = 0.125;
 	props.token = physent;
 	
-	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, "models/testbox2.obj", &trans, &props, 1, qfalse);
-	
-	physent->s.modelindex = G_ModelIndex("models/testbox2.obj");
+	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, testmodels[testm_i], &trans, &props, 1, qfalse);
+	physent->s.modelindex = G_ModelIndex(testmodels[testm_i]);
 	
 	G_SetOrigin(physent, pos);
 	trap->LinkEntity( (sharedEntity_t *) physent);
