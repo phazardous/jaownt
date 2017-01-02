@@ -1962,10 +1962,14 @@ void SV_BindGame( void ) {
 		gi.Phys_World_Set_Resolution			= Phys_World_Set_Resolution;
 		gi.Phys_World_Set_Gravity				= Phys_World_Set_Gravity;
 		gi.Phys_World_Add_Current_Map			= Phys_World_Add_Current_Map;
+		gi.Phys_World_Remove_Object				= Phys_World_Remove_Object;
+		gi.Phys_Object_Create_Box				= Phys_Object_Create_Box;
 		gi.Phys_Object_Create_From_Obj			= Phys_Object_Create_From_Obj;
 		gi.Phys_Object_Create_From_BModel		= Phys_Object_Create_From_BModel;
 		gi.Phys_Object_Get_Transform			= Phys_Object_Get_Transform;
 		gi.Phys_Object_Set_Transform			= Phys_Object_Set_Transform;
+		gi.Phys_Object_Get_Properties			= Phys_Object_Get_Properties;
+		gi.Phys_Object_Set_Properties			= Phys_Object_Set_Properties;
 
 		GetGameAPI = (GetGameAPI_t)gvm->GetModuleAPI;
 		ret = GetGameAPI( GAME_API_VERSION, &gi );

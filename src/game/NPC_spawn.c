@@ -1747,6 +1747,8 @@ finish:
 	{
 		G_SetOrigin( ent, saveOrg );
 	}
+	
+	G_Phys_AddHitboxKinematic(newent);
 
 	return newent;
 }

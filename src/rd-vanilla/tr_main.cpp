@@ -860,7 +860,7 @@ static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, vec4_t clipDest[128
 	R_DecomposeSort( drawSurf->sort, &entityNum, &shader, &fogNum, &dlighted );
 	RB_BeginSurface( shader, fogNum );
 	rb_surfaceTable[ *drawSurf->surface ]( drawSurf->surface );
-	assert( tess.numVertexes < 128 );
+	//assert( tess.numVertexes < 128 ); is this necessary?
 	for ( i = 0; i < tess.numVertexes; i++ )
 	{
 		int j;

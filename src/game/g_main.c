@@ -3022,8 +3022,6 @@ void G_RunFrame( int levelTime ) {
 	level.framenum++;
 	level.previousTime = level.time;
 	level.time = levelTime;
-	
-	G_Phys_Frame();
 
 	if (g_allowNPC.integer)
 	{
@@ -3124,10 +3122,6 @@ void G_RunFrame( int levelTime ) {
 		if ( !ent->r.linked && ent->neverFree ) {
 			continue;
 		}
-		
-		if ( ent->s.eFlags & EF_PHYS && ent->s.eType != ET_MOVER ) {
-			G_Phys_UpdateEnt(ent);
-		}
 
 		if ( ent->s.eType == ET_MISSILE ) {
 			G_RunMissile( ent );
@@ -3156,7 +3150,7 @@ void G_RunFrame( int levelTime ) {
 
 		if ( ent->s.eType == ET_MOVER ) {
 			G_RunMover( ent );
-			if (ent->s.eFlags & EF_PHYS) G_Phys_UpdateEntMover(ent);
+			G_Phys_UpdateEnt(ent);
 			continue;
 		}
 
@@ -3340,6 +3334,7 @@ void G_RunFrame( int levelTime ) {
 			trap->ICARUS_MaintainTaskManager(ent->s.number);
 
 			G_RunClient( ent );
+			G_Phys_UpdateEnt( ent );
 			continue;
 		}
 		else if (ent->s.eType == ET_NPC)
@@ -3358,12 +3353,15 @@ void G_RunFrame( int levelTime ) {
 		}
 
 		G_RunThink( ent );
+		G_Phys_UpdateEnt( ent );
 
 		if (g_allowNPC.integer)
 		{
 			ClearNPCGlobals();
 		}
 	}
+	
+	G_Phys_Frame();
 #ifdef _G_FRAME_PERFANAL
 	iTimer_ItemRun = trap->PrecisionTimer_End(timer_ItemRun);
 #endif

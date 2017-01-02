@@ -2473,3 +2473,14 @@ typedef struct phys_transform_s {
 	vec3_t origin;
 	vec3_t angles;
 } phys_transform_t;
+
+typedef struct phys_collision_s {
+	phys_object_t * A;
+	phys_object_t * B;
+	void * tokenA, * tokenB;
+	float impulse;
+	vec3_t normal; // normal of impact, from the perspective of B (invert for A)
+	vec3_t posA, posB;
+} phys_collision_t;
+
+typedef void (*phys_touch_callback) (phys_world_t * w, phys_collision_t * col);

@@ -1170,13 +1170,14 @@ int irand(int min, int max)
 {
 	int		result;
 
-	assert((max - min) < QRAND_MAX);
+	//assert((max - min) < QRAND_MAX);
 
 	max++;
 	holdrand = (holdrand * 214013L) + 2531011L;
 	result = holdrand >> 17;
 	result = ((result * (max - min)) >> 15) + min;
-	return(result);
+	while (result >= QRAND_MAX) result -= QRAND_MAX;
+	return result;
 }
 
 int Q_irand(int value1, int value2)

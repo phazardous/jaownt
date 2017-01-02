@@ -97,7 +97,7 @@ typedef struct cGrid_s {
 	vec3_t	points[MAX_GRID_SIZE][MAX_GRID_SIZE];	// [width][height]
 } cGrid_t;
 
-#define	SUBDIVIDE_DISTANCE	16	//4	// never more than this units away from curve
+#define	SUBDIVIDE_DISTANCE	4	//4	// never more than this units away from curve
 #define	PLANE_TRI_EPSILON	0.1
 #define	WRAP_POINT_EPSILON	0.1
 

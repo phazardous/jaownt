@@ -3,11 +3,48 @@
 static phys_world_t * gworld = NULL;
 static int last_time = 0;
 
+static void g_touch_cb(phys_world_t * w, phys_collision_t * col) {
+	assert(w == gworld);
+	
+	gentity_t * entA = col->tokenA;
+	gentity_t * entB = col->tokenB;
+	
+	if (!entA || !entB) return;
+
+	gentity_t * entClient = NULL;
+	gentity_t * entOther = NULL;
+	float * hitClient;
+	float * hitOther;
+	
+	if (entA->s.eType == ET_PLAYER || entA->s.eType == ET_NPC) {
+		entClient = entA;
+		entOther = entB;
+		hitClient = col->posA;
+		hitOther = col->posB;
+	}
+	if (entB->s.eType == ET_PLAYER || entB->s.eType == ET_NPC) {
+		if (entClient) return; // client on client collisions are irrelevant
+		entClient = entB;
+		entOther = entA;
+		hitClient = col->posB;
+		hitOther = col->posA;
+		VectorInverse(col->normal);
+	}
+	
+	if (!entClient) return; // collisions not involving a client are irrelevant
+		
+	vec3_t va1, va2, work;
+	VectorScale(col->normal, col->impulse, va1);
+	VectorSubtract(hitOther, hitClient, work);
+	VectorScale(col->normal, fabs(VectorLength(work)), va2);
+	VectorAdd(va2, entClient->playerState->velocity, entClient->playerState->velocity);
+}
+
 void G_Phys_Init() {
 	trap->Print("================================\n");
 	trap->Print("Initializing Serverside Physics\n");
 	
-	gworld = trap->Phys_World_Create();
+	gworld = trap->Phys_World_Create(g_touch_cb);
 	G_Phys_Upd_Res();
 	G_Phys_Upd_Grav();
 	trap->Phys_World_Add_Current_Map(gworld);
@@ -44,21 +81,34 @@ static phys_properties_t props;
 
 void G_Phys_UpdateEnt(gentity_t * ent) {
 	if (!ent->phys) return;
-	trap->Phys_Object_Get_Transform(ent->phys, &trans);
-	G_SetOrigin(ent, trans.origin);
-	G_SetAngles(ent, trans.angles);
-	
-	ent->s.pos.trType = TR_INTERPOLATE;
-	ent->s.apos.trType = TR_INTERPOLATE;
-	
-	trap->LinkEntity( (sharedEntity_t *) ent);
-}
-
-void G_Phys_UpdateEntMover(gentity_t * ent) {
-	if (!ent->phys) return;
-	VectorCopy(ent->r.currentOrigin, trans.origin);
-	VectorCopy(ent->r.currentAngles, trans.angles);
-	trap->Phys_Object_Set_Transform(ent->phys, &trans);
+	switch (ent->s.eType) {
+	case ET_PLAYER:
+		VectorCopy(ent->r.currentOrigin, trans.origin);
+		VectorCopy(ent->r.currentAngles, trans.angles);
+		trap->Phys_Object_Set_Transform(ent->phys, &trans);
+		break;
+	case ET_NPC:
+		VectorCopy(ent->r.currentOrigin, trans.origin);
+		VectorCopy(ent->r.currentAngles, trans.angles);
+		trap->Phys_Object_Set_Transform(ent->phys, &trans);
+		break;
+	case ET_MOVER:
+		VectorCopy(ent->r.currentOrigin, trans.origin);
+		VectorCopy(ent->r.currentAngles, trans.angles);
+		trap->Phys_Object_Set_Transform(ent->phys, &trans);
+		break;
+	case ET_GENERAL:
+	default:
+		trap->Phys_Object_Get_Transform(ent->phys, &trans);
+		G_SetOrigin(ent, trans.origin);
+		G_SetAngles(ent, trans.angles);
+		
+		ent->s.pos.trType = TR_INTERPOLATE;
+		ent->s.apos.trType = TR_INTERPOLATE;
+		
+		trap->LinkEntity( (sharedEntity_t *) ent);
+		break;
+	}
 }
 
 void G_Phys_AddBMover(gentity_t * mover) {
@@ -77,6 +127,26 @@ void G_Phys_AddBMover(gentity_t * mover) {
 	mover->phys = trap->Phys_Object_Create_From_BModel(gworld, bmodi, &trans, &props, qtrue);
 }
 
+void G_Phys_AddHitboxKinematic(gentity_t * ent) {
+	if (ent->phys) trap->Phys_World_Remove_Object(gworld, ent->phys);
+	
+	props.mass = 0;
+	props.friction = 1;
+	props.restitution = 0;
+	props.dampening = 0;
+	props.token = ent;
+	
+	VectorCopy(ent->r.currentOrigin, trans.origin);
+	VectorClear(trans.angles);
+	
+	ent->phys = trap->Phys_Object_Create_Box(gworld, ent->r.mins, ent->r.maxs, &trans, &props, qtrue);
+}
+
+void G_Phys_Remove(gentity_t * ent) {
+	if (ent->phys) trap->Phys_World_Remove_Object(gworld, ent->phys);
+	ent->phys = NULL;
+};
+
 static char const * testmodels [] = {
 	"models/testbox.obj",
 	"models/testbox2.obj"
@@ -94,7 +164,7 @@ void G_TEST_PhysTestEnt(vec3_t pos) {
 	
 	size_t testm_i = rand() % testmodels_num;
 	
-	props.mass = 500;
+	props.mass = -1;
 	props.friction = 0.5;
 	props.restitution = 0.125;
 	props.dampening = 0.125;

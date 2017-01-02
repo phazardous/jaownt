@@ -372,7 +372,7 @@ typedef struct vehicleInfo_s {
 
 #define	VFOFS(x) offsetof(vehicleInfo_t, x)
 
-#define MAX_VEHICLES	512
+#define MAX_VEHICLES	1024
 #define VEHICLE_BASE	0
 #define VEHICLE_NONE	-1
 

@@ -1563,9 +1563,11 @@ void G_Phys_Upd_Res();
 void G_Phys_Upd_Grav();
 
 void G_Phys_UpdateEnt(gentity_t * ent);
-void G_Phys_UpdateEntMover(gentity_t * ent);
 
 void G_Phys_AddBMover(gentity_t * mover);
+void G_Phys_AddHitboxKinematic(gentity_t * ent);
+
+void G_Phys_Remove(gentity_t * ent);
 
 void G_TEST_PhysTestEnt(vec3_t pos);
 

@@ -180,6 +180,9 @@ static gentity_t * G_SharpI_SpawnNPC(sharp_string svnpc_type, vec3_t pos, float 
 	NPC_DefaultScriptFlags( newent );
 	newent->client->sess.sessionTeam = TEAM_FREE;
 	newent->client->ps.persistant[PERS_TEAM] = newent->client->sess.sessionTeam;
+	
+	G_Phys_AddHitboxKinematic(newent);
+	
 	trap->LinkEntity ((sharedEntity_t *)newent);
 
 	return newent;

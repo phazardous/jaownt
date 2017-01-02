@@ -22,6 +22,10 @@ static constexpr float r2d_mult = 57.2957795f;
 
 static std::unordered_map<btDynamicsWorld const *, phys_world_t *> world_map;
 
+static void bt2q3_vec3(btVector3 const & bt, vec3_t & q3) {
+	VectorSet(q3, bt.x(), bt.y(), bt.z());
+}
+
 struct phys_object_s {
 	std::mutex objlock {};
 	
@@ -30,7 +34,7 @@ struct phys_object_s {
 	btTransform new_trans {};
 	btTransform trans_cache {};
 	
-	phys_properties_t properties;
+	phys_properties_t properties {};
 	
 	btVector3 inertia {0, 0, 0}; 
 	btCollisionShape * shape = nullptr;
@@ -69,6 +73,8 @@ struct phys_world_s {
 	btCollisionDispatcher * dispatcher = nullptr;
 	btSequentialImpulseConstraintSolver * solver = nullptr;
 	btDiscreteDynamicsWorld * world = nullptr;
+	
+	phys_touch_callback touch_cb = nullptr;
 	
 	int step_resolution = 120;
 	
@@ -116,6 +122,8 @@ static void bullet_world_substep_cb(btDynamicsWorld *world, btScalar timeStep) {
 		this_world = iter->second;
 	}
 	
+	if (!this_world->touch_cb) return;
+	
 	int numManifolds = world->getDispatcher()->getNumManifolds();
 	for (int i=0;i<numManifolds;i++) {
 		btPersistentManifold* contactManifold =  world->getDispatcher()->getManifoldByIndexInternal(i);
@@ -151,13 +159,19 @@ static void bullet_world_substep_cb(btDynamicsWorld *world, btScalar timeStep) {
 			}
 		}
 		
-		pA->objlock.lock();
-		pB->objlock.lock();
-		
-		// TODO -- WORLD INTERACTION CALLBACK
-		
-		pA->objlock.unlock();
-		pB->objlock.unlock();
+		phys_collision_t col;
+		col.A = pA;
+		col.B = pB;
+		col.tokenA = pA->properties.token;
+		col.tokenB = pB->properties.token;
+		for (int i = 0; i < numContacts; i++) {
+			auto c = contactManifold->getContactPoint(i);
+			col.impulse = c.getAppliedImpulse();
+			bt2q3_vec3(c.getPositionWorldOnA(), col.posA);
+			bt2q3_vec3(c.getPositionWorldOnB(), col.posB);
+			bt2q3_vec3(c.m_normalWorldOnB, col.normal);
+			this_world->touch_cb(this_world, &col);
+		}
 	}
 }
 
@@ -195,7 +209,7 @@ static void bullet_world_thread_loop(phys_world_t * w) {
 	}
 }
 
-phys_world_t * Phys_World_Create() {
+phys_world_t * Phys_World_Create(phys_touch_callback touch_cb) {
 	phys_world_t * nw = new phys_world_t;
 	
 	nw->broadphase = new btDbvtBroadphase;
@@ -207,6 +221,8 @@ phys_world_t * Phys_World_Create() {
 	nw->world->setGravity( {0, 0, -800} );
 	nw->world->setInternalTickCallback(bullet_world_substep_cb);
 	nw->world->setForceUpdateAllAabbs(false);
+	
+	nw->touch_cb = touch_cb;
 
 	nw->thr = new std::thread {bullet_world_thread_loop, nw};
 	
@@ -361,7 +377,16 @@ void Phys_World_Add_Current_Map(phys_world_t * world) {
 		GPTP_TaskCollect(task);
 	}
 	
+	phys_properties_t world_props = {
+		0,
+		0,
+		0,
+		0,
+		nullptr,
+	};
+	
 	world->map_static = new phys_object_t;
+	world->map_static->properties = world_props;
 	world->map_static->is_compound = true;
 	btd.cs->recalculateLocalAabb();
 	world->map_static->shape = btd.cs;
@@ -372,6 +397,7 @@ void Phys_World_Add_Current_Map(phys_world_t * world) {
 	world->world->addRigidBody(world->map_static->body);
 	
 	world->map_static_slick = new phys_object_t;
+	world->map_static->properties = world_props;
 	world->map_static_slick->is_compound = true;
 	btd.css->recalculateLocalAabb();
 	world->map_static_slick->shape = btd.css;
@@ -383,6 +409,16 @@ void Phys_World_Add_Current_Map(phys_world_t * world) {
 	world->world->addRigidBody(world->map_static_slick->body);
 }
 
+void Phys_World_Remove_Object(phys_world_t * w, phys_object_t * obj) {
+	w->simlock.lock();
+	w->world->removeRigidBody(obj->body);
+	auto i = w->object_map.find(obj->body);
+	if (i != w->object_map.end()) w->object_map.erase(i);
+	w->objects.erase(obj);
+	delete obj;
+	w->simlock.unlock();
+}
+
 static void bullet_world_add_object(phys_world_t * w, phys_object_t * obj) {
 	w->simlock.lock();
 	w->world->addRigidBody(obj->body);
@@ -392,10 +428,56 @@ static void bullet_world_add_object(phys_world_t * w, phys_object_t * obj) {
 	w->simlock.unlock();
 }
 
+phys_object_t * Phys_Object_Create_Box(phys_world_t * w, vec3_t mins, vec3_t maxs, phys_transform_t * initial_transform, phys_properties_t * properties, qboolean kinematic) {
+	phys_object_t * obj = new phys_object_t;
+	
+	obj->properties = *properties;
+	
+	btConvexHullShape * chs = new btConvexHullShape;
+	chs->addPoint({mins[0], mins[1], mins[2]}, false);
+	chs->addPoint({mins[0], mins[1], maxs[2]}, false);
+	chs->addPoint({mins[0], maxs[1], mins[2]}, false);
+	chs->addPoint({mins[0], maxs[1], maxs[2]}, false);
+	chs->addPoint({maxs[0], mins[1], mins[2]}, false);
+	chs->addPoint({maxs[0], mins[1], maxs[2]}, false);
+	chs->addPoint({maxs[0], maxs[1], mins[2]}, false);
+	chs->addPoint({maxs[0], maxs[1], maxs[2]}, false);
+	chs->recalcLocalAabb();
+	
+	obj->shape = chs;
+	
+	if (obj->properties.mass < 0) {
+		obj->properties.mass = fabs(mins[0] - maxs[0]) * fabs(mins[1] - maxs[1]) * fabs(mins[2] - maxs[2]);
+	}
+	
+	obj->motion_state = new btDefaultMotionState { btTransform { 
+		btQuaternion { initial_transform->angles[0] * d2r_mult, initial_transform->angles[2] * d2r_mult, initial_transform->angles[1] * d2r_mult }, 
+		btVector3 {initial_transform->origin[0], initial_transform->origin[1], initial_transform->origin[2]} } };
+	obj->shape->calculateLocalInertia(obj->properties.mass, obj->inertia);
+	btRigidBody::btRigidBodyConstructionInfo CI {obj->properties.mass, obj->motion_state, obj->shape, obj->inertia};
+	obj->body = new btRigidBody {CI};
+	
+	obj->set_properties();
+	if (kinematic) {
+		obj->body->setCollisionFlags(obj->body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+		obj->body->setActivationState(DISABLE_DEACTIVATION);
+	}
+	bullet_world_add_object(w, obj);
+	
+	return obj;
+}
+
 phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * path, phys_transform_t * initial_transform, phys_properties_t * properties, float scale, qboolean kinematic) {
 	phys_object_t * no = new phys_object_t;
 	
 	no->properties = *properties;
+	
+	bool calc_mass = false;
+	float mass = properties->mass;
+	if (mass < 0) {
+		calc_mass = true;
+		mass = 0;
+	}
 
 	objModel_t * mod = CM_LoadObj(path);
 	if (!mod) return nullptr;
@@ -405,17 +487,66 @@ phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * p
 		btCompoundShape * cps = new btCompoundShape;
 		no->is_compound = true;
 		
-		for (int s = 0; s < mod->numSurfaces; s++) {
+		if (calc_mass) {
 			
-			btConvexHullShape * chs = new btConvexHullShape;
-			for (int i = 0; i < mod->surfaces[s].numFaces; i++) {
-				chs->addPoint( {mod->surfaces[s].faces[i][0].vertex[0], mod->surfaces[s].faces[i][0].vertex[1], mod->surfaces[s].faces[i][0].vertex[2]}, false );
-				chs->addPoint( {mod->surfaces[s].faces[i][1].vertex[0], mod->surfaces[s].faces[i][1].vertex[1], mod->surfaces[s].faces[i][1].vertex[2]}, false );
-				chs->addPoint( {mod->surfaces[s].faces[i][2].vertex[0], mod->surfaces[s].faces[i][2].vertex[1], mod->surfaces[s].faces[i][2].vertex[2]}, false );
+			for (int s = 0; s < mod->numSurfaces; s++) {
+				
+				btConvexHullShape * chs = new btConvexHullShape;
+				btVector3 min, max;
+				
+				for (int i = 0; i < mod->surfaces[s].numFaces; i++) {
+					btVector3 p1 {mod->surfaces[s].faces[i][0].vertex[0], mod->surfaces[s].faces[i][0].vertex[1], mod->surfaces[s].faces[i][0].vertex[2]};
+					btVector3 p2 {mod->surfaces[s].faces[i][1].vertex[0], mod->surfaces[s].faces[i][1].vertex[1], mod->surfaces[s].faces[i][1].vertex[2]};
+					btVector3 p3 {mod->surfaces[s].faces[i][2].vertex[0], mod->surfaces[s].faces[i][2].vertex[1], mod->surfaces[s].faces[i][2].vertex[2]};
+					chs->addPoint( p1, false );
+					chs->addPoint( p2, false );
+					chs->addPoint( p2, false );
+					if (i == 0) {
+						min = p1;
+						max = p1;
+					}
+					if (p1.x() < min.x()) min.setX(p1.x());
+					if (p1.x() > max.x()) max.setX(p1.x());
+					if (p1.y() < min.y()) min.setY(p1.y());
+					if (p1.y() > max.y()) max.setY(p1.y());
+					if (p1.z() < min.z()) min.setZ(p1.z());
+					if (p1.z() > max.z()) max.setZ(p1.z());
+					if (p2.x() < min.x()) min.setX(p2.x());
+					if (p2.x() > max.x()) max.setX(p2.x());
+					if (p2.y() < min.y()) min.setY(p2.y());
+					if (p2.y() > max.y()) max.setY(p2.y());
+					if (p2.z() < min.z()) min.setZ(p2.z());
+					if (p2.z() > max.z()) max.setZ(p2.z());
+					if (p3.x() < min.x()) min.setX(p3.x());
+					if (p3.x() > max.x()) max.setX(p3.x());
+					if (p3.y() < min.y()) min.setY(p3.y());
+					if (p3.y() > max.y()) max.setY(p3.y());
+					if (p3.z() < min.z()) min.setZ(p3.z());
+					if (p3.z() > max.z()) max.setZ(p3.z());
+				}
+				
+				chs->recalcLocalAabb();
+				mass += fabs(min.x() - max.x()) * fabs(min.y() - max.y()) * fabs(min.z() - max.z());
+				cps->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
+				
 			}
 			
-			chs->recalcLocalAabb();
-			cps->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
+		} else {
+		
+			for (int s = 0; s < mod->numSurfaces; s++) {
+				
+				btConvexHullShape * chs = new btConvexHullShape;
+				for (int i = 0; i < mod->surfaces[s].numFaces; i++) {
+					chs->addPoint( {mod->surfaces[s].faces[i][0].vertex[0], mod->surfaces[s].faces[i][0].vertex[1], mod->surfaces[s].faces[i][0].vertex[2]}, false );
+					chs->addPoint( {mod->surfaces[s].faces[i][1].vertex[0], mod->surfaces[s].faces[i][1].vertex[1], mod->surfaces[s].faces[i][1].vertex[2]}, false );
+					chs->addPoint( {mod->surfaces[s].faces[i][2].vertex[0], mod->surfaces[s].faces[i][2].vertex[1], mod->surfaces[s].faces[i][2].vertex[2]}, false );
+				}
+				
+				chs->recalcLocalAabb();
+				
+				cps->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
+				
+			}
 		}
 		cps->setLocalScaling({scale, scale, scale});
 		cps->recalculateLocalAabb();
@@ -423,15 +554,49 @@ phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * p
 		
 	} else {
 		
-		btConvexHullShape * chs = new btConvexHullShape;
-		
-		for (int i = 0; i < mod->numVerts; i++) {
-			chs->addPoint( {mod->verts[i*3], mod->verts[i*3+1], mod->verts[i*3+2]}, false );
+		if (calc_mass) {
+			
+			btConvexHullShape * chs = new btConvexHullShape;
+			btVector3 min, max;
+			
+			for (int i = 0; i < mod->numVerts; i++) {
+				btVector3 np {mod->verts[i*3], mod->verts[i*3+1], mod->verts[i*3+2]};
+				if (i == 0) {
+					min = np;
+					max = np;
+				}
+				chs->addPoint( np, false );
+				if (np.x() < min.x()) min.setX(np.x());
+				if (np.x() > max.x()) max.setX(np.x());
+				if (np.y() < min.y()) min.setY(np.y());
+				if (np.y() > max.y()) max.setY(np.y());
+				if (np.z() < min.z()) min.setZ(np.z());
+				if (np.z() > max.z()) max.setZ(np.z());
+			}
+			chs->setLocalScaling({scale, scale, scale});
+			chs->recalcLocalAabb();
+			no->shape = chs;
+			mass += fabs(min.x() - max.x()) * fabs(min.y() - max.y()) * fabs(min.z() - max.z());
+			
+		} else {
+			
+			btConvexHullShape * chs = new btConvexHullShape;
+			
+			for (int i = 0; i < mod->numVerts; i++) {
+				chs->addPoint( {mod->verts[i*3], mod->verts[i*3+1], mod->verts[i*3+2]}, false );
+			}
+			chs->setLocalScaling({scale, scale, scale});
+			chs->recalcLocalAabb();
+			no->shape = chs;
+			
 		}
-		chs->setLocalScaling({scale, scale, scale});
-		chs->recalcLocalAabb();
-		no->shape = chs;
 	}
+	
+	if (calc_mass) {
+		no->properties.mass = mass;
+	}
+	
+	Com_Printf("%f\n", no->properties.mass);
 	
 	no->motion_state = new btDefaultMotionState { btTransform { 
 		btQuaternion { initial_transform->angles[0] * d2r_mult, initial_transform->angles[2] * d2r_mult, initial_transform->angles[1] * d2r_mult }, 
@@ -460,8 +625,6 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 	int * patches = new int [surfaces_max];
 	CM_SubmodelIndicies(modeli, brushes, patches, &brushes_num, &surfaces_num);
 	
-	
-	
 	phys_object_t * no = new phys_object_t;
 	no->properties = *properties;
 	no->is_compound = true;
@@ -476,6 +639,7 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 			btVector3 vec { points[i][0], points[i][1], points[i][2] };
 			chs->addPoint(vec, false);
 		}
+		
 		chs->recalcLocalAabb();
 		cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
 	}
@@ -493,16 +657,16 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 					chs->addPoint(btVector3 {points[((y + 1) * width) + (x + 0)][0], points[((y + 1) * width) + (x + 0)][1], points[((y + 1) * width) + (x + 0)][2]}, false);
 					chs->addPoint(btVector3 {points[((y + 0) * width) + (x + 1)][0], points[((y + 0) * width) + (x + 1)][1], points[((y + 0) * width) + (x + 1)][2]}, false);
 					chs->addPoint(btVector3 {points[((y + 1) * width) + (x + 1)][0], points[((y + 1) * width) + (x + 1)][1], points[((y + 1) * width) + (x + 1)][2]}, false);
-					chs->recalcLocalAabb();
 					
 					chs->recalcLocalAabb();
+					
 					cs->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, 0} }, chs );
 				}
 			}
 		}
 	}
 	
-// 	cs->recalculateLocalAabb();
+ 	cs->recalculateLocalAabb();
 	no->shape = cs;
 	no->motion_state = new btDefaultMotionState { btTransform { 
 		btQuaternion { initial_transform->angles[0] * d2r_mult, initial_transform->angles[2] * d2r_mult, initial_transform->angles[1] * d2r_mult }, 
