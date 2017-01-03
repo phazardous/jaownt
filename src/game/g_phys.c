@@ -6,8 +6,11 @@ static int last_time = 0;
 static void g_touch_cb(phys_world_t * w, phys_collision_t * col) {
 	assert(w == gworld);
 	
-	gentity_t * entA = col->tokenA;
-	gentity_t * entB = col->tokenB;
+	phys_properties_t * propsA = trap->Phys_Object_Get_Properties(col->A);
+	phys_properties_t * propsB = trap->Phys_Object_Get_Properties(col->B);
+	
+	gentity_t * entA = propsA->token;
+	gentity_t * entB = propsB->token;
 	
 	if (!entA || !entB) return;
 
@@ -36,7 +39,7 @@ static void g_touch_cb(phys_world_t * w, phys_collision_t * col) {
 	vec3_t va1, va2, work;
 	VectorScale(col->normal, col->impulse, va1);
 	VectorSubtract(hitOther, hitClient, work);
-	VectorScale(col->normal, fabs(VectorLength(work)), va2);
+	VectorScale(col->normal, fabs(VectorLength(work)) * 5, va2);
 	VectorAdd(va2, entClient->playerState->velocity, entClient->playerState->velocity);
 }
 
@@ -122,9 +125,11 @@ void G_Phys_AddBMover(gentity_t * mover) {
 	props.friction = 0.5;
 	props.restitution = 0.125;
 	props.dampening = 0;
+	props.actor = qfalse;
+	props.kinematic = qtrue;
 	props.token = mover;
 	
-	mover->phys = trap->Phys_Object_Create_From_BModel(gworld, bmodi, &trans, &props, qtrue);
+	mover->phys = trap->Phys_Object_Create_From_BModel(gworld, bmodi, &trans, &props);
 }
 
 void G_Phys_AddHitboxKinematic(gentity_t * ent) {
@@ -134,12 +139,14 @@ void G_Phys_AddHitboxKinematic(gentity_t * ent) {
 	props.friction = 1;
 	props.restitution = 0;
 	props.dampening = 0;
+	props.actor = qfalse;
+	props.kinematic = qtrue;
 	props.token = ent;
 	
 	VectorCopy(ent->r.currentOrigin, trans.origin);
 	VectorClear(trans.angles);
 	
-	ent->phys = trap->Phys_Object_Create_Box(gworld, ent->r.mins, ent->r.maxs, &trans, &props, qtrue);
+	ent->phys = trap->Phys_Object_Create_Box(gworld, ent->r.mins, ent->r.maxs, &trans, &props);
 }
 
 void G_Phys_Remove(gentity_t * ent) {
@@ -168,9 +175,11 @@ void G_TEST_PhysTestEnt(vec3_t pos) {
 	props.friction = 0.5;
 	props.restitution = 0.125;
 	props.dampening = 0.125;
+	props.actor = qfalse;
+	props.kinematic = qfalse;
 	props.token = physent;
 	
-	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, testmodels[testm_i], &trans, &props, 1, qfalse);
+	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, testmodels[testm_i], &trans, &props, 1);
 	physent->s.modelindex = G_ModelIndex(testmodels[testm_i]);
 	
 	G_SetOrigin(physent, pos);

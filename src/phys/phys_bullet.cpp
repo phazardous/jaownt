@@ -50,6 +50,24 @@ struct phys_object_s {
 		body->setFriction(properties.friction);
 		body->setRestitution(properties.restitution);
 		body->setSleepingThresholds(20.f, 20.f);
+		
+		if (properties.kinematic) {
+			body->setCollisionFlags(body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+		} else {
+			body->setCollisionFlags(body->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+		}
+		
+		if (properties.actor) {
+			body->setAngularFactor( {0, 0, 0} );
+		} else {
+			body->setAngularFactor( {1, 1, 1} );
+		}
+		
+		if (properties.kinematic || properties.actor) {
+			body->setActivationState( DISABLE_DEACTIVATION );
+		} else {
+			body->setActivationState( ACTIVE_TAG );
+		}
 	}
 	
 	~phys_object_s() {
@@ -162,8 +180,6 @@ static void bullet_world_substep_cb(btDynamicsWorld *world, btScalar timeStep) {
 		phys_collision_t col;
 		col.A = pA;
 		col.B = pB;
-		col.tokenA = pA->properties.token;
-		col.tokenB = pB->properties.token;
 		for (int i = 0; i < numContacts; i++) {
 			auto c = contactManifold->getContactPoint(i);
 			col.impulse = c.getAppliedImpulse();
@@ -382,6 +398,8 @@ void Phys_World_Add_Current_Map(phys_world_t * world) {
 		0,
 		0,
 		0,
+		qfalse,
+		qfalse,
 		nullptr,
 	};
 	
@@ -428,7 +446,7 @@ static void bullet_world_add_object(phys_world_t * w, phys_object_t * obj) {
 	w->simlock.unlock();
 }
 
-phys_object_t * Phys_Object_Create_Box(phys_world_t * w, vec3_t mins, vec3_t maxs, phys_transform_t * initial_transform, phys_properties_t * properties, qboolean kinematic) {
+phys_object_t * Phys_Object_Create_Box(phys_world_t * w, vec3_t mins, vec3_t maxs, phys_transform_t * initial_transform, phys_properties_t * properties) {
 	phys_object_t * obj = new phys_object_t;
 	
 	obj->properties = *properties;
@@ -458,16 +476,12 @@ phys_object_t * Phys_Object_Create_Box(phys_world_t * w, vec3_t mins, vec3_t max
 	obj->body = new btRigidBody {CI};
 	
 	obj->set_properties();
-	if (kinematic) {
-		obj->body->setCollisionFlags(obj->body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-		obj->body->setActivationState(DISABLE_DEACTIVATION);
-	}
 	bullet_world_add_object(w, obj);
 	
 	return obj;
 }
 
-phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * path, phys_transform_t * initial_transform, phys_properties_t * properties, float scale, qboolean kinematic) {
+phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * path, phys_transform_t * initial_transform, phys_properties_t * properties, float scale) {
 	phys_object_t * no = new phys_object_t;
 	
 	no->properties = *properties;
@@ -607,17 +621,12 @@ phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * p
 	
 	no->set_properties();
 	
-	if (kinematic) {
-		no->body->setCollisionFlags(no->body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-		no->body->setActivationState(DISABLE_DEACTIVATION);
-	}
-	
 	bullet_world_add_object(world, no);
 	
 	return no;
 }
 
-phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli, phys_transform_t * initial_transform, phys_properties_t * properties, qboolean kinematic) {
+phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli, phys_transform_t * initial_transform, phys_properties_t * properties) {
 	vec3_t points[BP_POINTS_SIZE];
 	int brushes_max, surfaces_max, brushes_num, surfaces_num;
 	CM_NumData(&brushes_max, &surfaces_max);
@@ -677,11 +686,6 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 	
 	no->set_properties();
 	
-	if (kinematic) {
-		no->body->setCollisionFlags(no->body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-		no->body->setActivationState(DISABLE_DEACTIVATION);
-	}
-	
 	bullet_world_add_object(world, no);
 	
 	return no;
@@ -711,15 +715,16 @@ void Phys_Object_Set_Transform(phys_object_t * obj, phys_transform_t const * ia)
 	obj->objlock.unlock();
 }
 
-void Phys_Object_Get_Properties(phys_object_t * obj, phys_properties_t * props) {
+phys_properties_t * Phys_Object_Get_Properties(phys_object_t * obj ) {
+	phys_properties_t * props;
 	obj->objlock.lock();
-	*props = obj->properties;
+	props = &obj->properties;
 	obj->objlock.unlock();
+	return props;
 }
 
-void Phys_Object_Set_Properties(phys_object_t * obj, phys_properties_t const * props) {
+void Phys_Object_Set_Properties(phys_object_t * obj) {
 	obj->objlock.lock();
-	obj->properties = *props;
 	obj->set_properties();
 	obj->objlock.unlock();
 }

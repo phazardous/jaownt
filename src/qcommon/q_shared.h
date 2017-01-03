@@ -2466,6 +2466,8 @@ typedef struct phys_properties_s {
 	float restitution;
 	float friction;
 	float dampening;
+	qboolean actor; // rotation and gravity is disabled on actors, usually used on hitboxes
+	qboolean kinematic;
 	void * token; // used by implementers to quickly identify who owns a phys_object_t
 } phys_properties_t;
 
@@ -2477,7 +2479,6 @@ typedef struct phys_transform_s {
 typedef struct phys_collision_s {
 	phys_object_t * A;
 	phys_object_t * B;
-	void * tokenA, * tokenB;
 	float impulse;
 	vec3_t normal; // normal of impact, from the perspective of B (invert for A)
 	vec3_t posA, posB;
