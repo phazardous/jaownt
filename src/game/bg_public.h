@@ -656,7 +656,7 @@ typedef enum {
 #define EF_JETPACK				(1<<29)		//rww - wearing a jetpack
 #define EF_JETPACK_FLAMING		(1<<30)		//rww - jetpack fire effect
 
-#define	EF_PHYS					(1<<31)		// real physics
+#define	EF_ON_PHYS				(1<<31)		// entity is on a physics object (stand override)
 
 //These new EF2_??? flags were added for NPCs, they really should not be used often.
 //NOTE: we only allow 10 of these!

@@ -2468,6 +2468,7 @@ typedef struct phys_properties_s {
 	float dampening;
 	qboolean actor; // rotation and gravity is disabled on actors, usually used on hitboxes
 	qboolean kinematic;
+	int contents;
 	void * token; // used by implementers to quickly identify who owns a phys_object_t
 } phys_properties_t;
 

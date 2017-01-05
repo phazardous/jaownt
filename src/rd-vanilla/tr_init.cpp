@@ -1757,6 +1757,7 @@ void R_Init( void ) {
 
 	R_ImageLoader_Init();
 	R_NoiseInit();
+
 	R_Register();
 
 	max_polys = Q_min( r_maxpolys->integer, DEFAULT_MAX_POLYS );

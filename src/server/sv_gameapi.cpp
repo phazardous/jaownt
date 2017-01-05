@@ -1966,10 +1966,17 @@ void SV_BindGame( void ) {
 		gi.Phys_Object_Create_Box				= Phys_Object_Create_Box;
 		gi.Phys_Object_Create_From_Obj			= Phys_Object_Create_From_Obj;
 		gi.Phys_Object_Create_From_BModel		= Phys_Object_Create_From_BModel;
+		gi.Phys_Object_Create_Capsule			= Phys_Object_Create_Capsule;
 		gi.Phys_Object_Get_Transform			= Phys_Object_Get_Transform;
 		gi.Phys_Object_Set_Transform			= Phys_Object_Set_Transform;
 		gi.Phys_Object_Get_Properties			= Phys_Object_Get_Properties;
 		gi.Phys_Object_Set_Properties			= Phys_Object_Set_Properties;
+		gi.Phys_Object_Force					= Phys_Object_Force;
+		gi.Phys_Object_Impulse					= Phys_Object_Impulse;
+		gi.Phys_Obj_Set_Linear_Velocity			= Phys_Obj_Set_Linear_Velocity;
+		gi.Phys_Obj_Get_Linear_Velocity			= Phys_Obj_Get_Linear_Velocity;
+		gi.Phys_Obj_Set_Angular_Velocity		= Phys_Obj_Set_Angular_Velocity;
+		gi.Phys_Obj_Get_Angular_Velocity		= Phys_Obj_Get_Angular_Velocity;
 
 		GetGameAPI = (GetGameAPI_t)gvm->GetModuleAPI;
 		ret = GetGameAPI( GAME_API_VERSION, &gi );

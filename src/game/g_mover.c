@@ -291,12 +291,12 @@ If qfalse is returned, *obstacle will be the blocking entity
 */
 void NPC_RemoveBody( gentity_t *self );
 qboolean G_MoverPush( gentity_t *pusher, vec3_t move, vec3_t amove, gentity_t **obstacle ) {
-	int			i, e;
-	gentity_t	*check;
+	int			i;//e;
+	//gentity_t	*check;
 	vec3_t		mins, maxs;
-	pushed_t	*p;
-	int			entityList[MAX_GENTITIES];
-	int			listedEntities;
+	//pushed_t	*p;
+	//int		entityList[MAX_GENTITIES];
+	//int		listedEntities;
 	vec3_t		totalMins, totalMaxs;
 
 	*obstacle = NULL;
@@ -335,19 +335,20 @@ qboolean G_MoverPush( gentity_t *pusher, vec3_t move, vec3_t amove, gentity_t **
 	// unlink the pusher so we don't get it in the entityList
 	trap->UnlinkEntity( (sharedEntity_t *)pusher );
 
-	listedEntities = trap->EntitiesInBox( totalMins, totalMaxs, entityList, MAX_GENTITIES );
-
 	// move the pusher to it's final position
 	VectorAdd( pusher->r.currentOrigin, move, pusher->r.currentOrigin );
 	VectorAdd( pusher->r.currentAngles, amove, pusher->r.currentAngles );
 	trap->LinkEntity( (sharedEntity_t *)pusher );
+	
+	return qtrue; // Q3 doesn't do physics anymore
 
+	/*
 	// see if any solid entities are inside the final position
 	for ( e = 0 ; e < listedEntities ; e++ ) {
 		check = &g_entities[ entityList[ e ] ];
 
 		// only push items and players
-		if ( /*check->s.eType != ET_ITEM &&*/ check->s.eType != ET_PLAYER && check->s.eType != ET_NPC && !check->physicsObject ) {
+		if ( check->s.eType != ET_ITEM && check->s.eType != ET_PLAYER && check->s.eType != ET_NPC && !check->physicsObject ) {
 			continue;
 		}
 
@@ -435,6 +436,7 @@ qboolean G_MoverPush( gentity_t *pusher, vec3_t move, vec3_t amove, gentity_t **
 	}
 
 	return qtrue;
+	*/
 }
 
 
@@ -1027,7 +1029,6 @@ void InitMover( gentity_t *ent )
 
 	InitMoverTrData( ent );
 	
-	ent->s.eFlags |= EF_PHYS;
 	G_Phys_AddBMover(ent);
 }
 
@@ -1421,7 +1422,7 @@ void SP_func_door (gentity_t *ent)
 	vec3_t	size;
 	float	lip;
 
-	G_SpawnInt("vehopen", "0", &ent->genericValue14);
+	G_SpawnInt("vehopen", "1", &ent->genericValue14);
 
 	ent->blocked = Blocked_Door;
 
@@ -2681,6 +2682,8 @@ static void InitBBrush ( gentity_t *ent )
 
 	ent->s.pos.trType = TR_STATIONARY;
 	VectorCopy( ent->pos1, ent->s.pos.trBase );
+	
+	G_Phys_AddBMover(ent);
 }
 
 void funcBBrushTouch( gentity_t *ent, gentity_t *other, trace_t *trace )
@@ -2838,6 +2841,7 @@ void SP_func_breakable( gentity_t *self )
 	if (!self->model) {
 		trap->Error( ERR_DROP, "func_breakable with NULL model\n" );
 	}
+	
 	InitBBrush( self );
 
 	if ( !self->radius )

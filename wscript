@@ -175,7 +175,7 @@ def build(bld):
 		server = bld (
 			features = 'cxx cxxprogram',
 			target = 'jaowntded',
-			includes = ['src', 'src/rd-vanilla'],
+			includes = ['src'],
 			source = clsv_common_files + server_files,
 			defines = ['_CONSOLE', 'DEDICATED'],
 			uselib = ['ZLIB', 'DL', 'PTHREAD', 'WS2', 'MONO', 'BULLET'],
@@ -267,6 +267,26 @@ def build(bld):
 		)
 		
 		rdvan.env.cxxshlib_PATTERN = '%s_x86_64.' + module_end
+		
+	### RD-MODERN ###
+	
+		rdmodern_files = bld.path.ant_glob('src/rd-modern/*.cpp')
+		#rdmodern_files += bld.path.ant_glob('src/rd-common/*.cpp')
+		rdmodern_files += bld.path.ant_glob('src/ghoul2/*.cpp')
+		rdmodern_files += bld.path.ant_glob('src/qcommon/matcomp.cpp')
+		rdmodern_files += bld.path.ant_glob('src/qcommon/q_math.cpp')
+		rdmodern_files += bld.path.ant_glob('src/qcommon/q_shared.cpp')
+		
+		rdmodern = bld (
+			features = 'cxx cxxshlib',
+			target = 'rd-modern',
+			includes = ['src', 'src/rd-modern'],
+			source = rdmodern_files,
+			uselib = ['JPEG', 'PNG', 'GL', 'PTHREAD'],
+			install_path = os.path.join(top, 'install')
+		)
+		
+		rdmodern.env.cxxshlib_PATTERN = '%s_x86_64.' + module_end
 	
 	### C# SCRIPTING LIBRARY ###
 	if not plat_windows: # FIXME: windows users have to manually compile sharpsv due to some weird bug I don't fully understand

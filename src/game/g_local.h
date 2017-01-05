@@ -411,6 +411,8 @@ struct gentity_s {
 	
 	// Sharp
 	phys_object_t * phys;
+	qboolean phys_post_do_vellerp;
+	vec3_t phys_post_target_velocity;
 };
 
 #define DAMAGEREDIRECT_HEAD		1
@@ -1561,11 +1563,13 @@ void G_Phys_Frame ();
 
 void G_Phys_Upd_Res();
 void G_Phys_Upd_Grav();
+void G_Phys_Upd_ClF();
 
 void G_Phys_UpdateEnt(gentity_t * ent);
 
 void G_Phys_AddBMover(gentity_t * mover);
 void G_Phys_AddHitboxKinematic(gentity_t * ent);
+void G_Phys_AddClientCapsule(gentity_t * ent);
 
 void G_Phys_Remove(gentity_t * ent);
 

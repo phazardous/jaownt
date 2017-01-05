@@ -1903,7 +1903,7 @@ saberMoveName_t PM_SaberJumpAttackMove( void )
 }
 
 float PM_GroundDistance(void)
-{
+{	
 	trace_t tr;
 	vec3_t down;
 

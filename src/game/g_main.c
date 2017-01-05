@@ -3362,6 +3362,7 @@ void G_RunFrame( int levelTime ) {
 	}
 	
 	G_Phys_Frame();
+	
 #ifdef _G_FRAME_PERFANAL
 	iTimer_ItemRun = trap->PrecisionTimer_End(timer_ItemRun);
 #endif

@@ -885,6 +885,8 @@ void PM_StepSlideMove( qboolean gravity ) {
 	qboolean	isGiant = qfalse;
 	bgEntity_t	*pEnt;
 	qboolean skipStep = qfalse;
+	
+	return; // Q3 doesn't do this anymore
 
 	VectorCopy (pm->ps->origin, start_o);
 	VectorCopy (pm->ps->velocity, start_v);

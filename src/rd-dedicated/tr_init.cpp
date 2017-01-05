@@ -356,7 +356,7 @@ void R_Register( void )
 	r_fullbright						= ri->Cvar_Get( "r_fullbright",						"0",						CVAR_CHEAT, "" );
 	r_intensity							= ri->Cvar_Get( "r_intensity",						"1",						CVAR_LATCH, "" );
 	r_singleShader						= ri->Cvar_Get( "r_singleShader",					"0",						CVAR_CHEAT|CVAR_LATCH, "" );
-	r_lodCurveError						= ri->Cvar_Get( "r_lodCurveError",					"250",						CVAR_ARCHIVE, "" );
+	r_lodCurveError						= ri->Cvar_Get( "r_lodCurveError",					"500",						CVAR_ARCHIVE, "" );
 	r_lodbias							= ri->Cvar_Get( "r_lodbias",						"0",						CVAR_ARCHIVE, "" );
 	r_autolodscalevalue					= ri->Cvar_Get( "r_autolodscalevalue",				"0",						CVAR_ROM, "" );
 	r_flares							= ri->Cvar_Get( "r_flares",							"1",						CVAR_ARCHIVE, "" );

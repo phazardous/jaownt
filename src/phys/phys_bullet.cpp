@@ -22,11 +22,20 @@ static constexpr float r2d_mult = 57.2957795f;
 
 static std::unordered_map<btDynamicsWorld const *, phys_world_t *> world_map;
 
-static void bt2q3_vec3(btVector3 const & bt, vec3_t & q3) {
+static void bt2q3_vec3(btVector3 const & bt, float * q3) {
 	VectorSet(q3, bt.x(), bt.y(), bt.z());
 }
 
+static btVector3 q32bt_vec3(float * q3) {
+	return {q3[0], q3[1], q3[2]};
+}
+
 struct phys_object_s {
+	
+	phys_object_s(btDiscreteDynamicsWorld * parent) {
+		this->parent = parent;
+	}
+	
 	std::mutex objlock {};
 	
 	bool do_trans_update = false;
@@ -42,6 +51,9 @@ struct phys_object_s {
 	btRigidBody * body = nullptr;
 	
 	bool is_compound = false;
+	bool is_disabled = false;
+	
+	btDiscreteDynamicsWorld * parent = nullptr;
 	
 	void set_properties() {
 		shape->calculateLocalInertia(properties.mass, inertia);
@@ -59,14 +71,27 @@ struct phys_object_s {
 		
 		if (properties.actor) {
 			body->setAngularFactor( {0, 0, 0} );
+			
 		} else {
 			body->setAngularFactor( {1, 1, 1} );
 		}
 		
-		if (properties.kinematic || properties.actor) {
+		if ((properties.kinematic || properties.actor)) {
 			body->setActivationState( DISABLE_DEACTIVATION );
 		} else {
 			body->setActivationState( ACTIVE_TAG );
+		}
+		
+		if (properties.contents && is_disabled) {
+			is_disabled = false;
+			parent->addRigidBody(body);
+		} else if (!properties.contents && !is_disabled) {
+			is_disabled = true;
+			parent->removeRigidBody(body);
+		}
+			
+		if (!properties.contents && body->getActivationState() != DISABLE_SIMULATION) {
+			body->setActivationState( DISABLE_SIMULATION );
 		}
 	}
 	
@@ -110,9 +135,11 @@ struct phys_world_s {
 	
 	~phys_world_s() {
 		run.store(false);
-		thr->join();
 		
-		delete thr;
+		if (thr) {
+			thr->join();
+			delete thr;
+		}
 		
 		if (map_static) delete map_static;
 		if (map_static_slick) delete map_static_slick;
@@ -192,23 +219,27 @@ static void bullet_world_substep_cb(btDynamicsWorld *world, btScalar timeStep) {
 }
 
 static void bullet_world_thread_loop(phys_world_t * w) {
-	while (w->run) {
+	//while (w->run) {
 		
 		int adv = w->advance.exchange(0);
 		
-		if (!adv) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(5));
-			continue;
-		}
+		//if (!adv) {
+		//	std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		//	continue;
+		//}
 		
 		w->simlock.lock();
 		for (phys_object_t * obj : w->objects) {
 			obj->objlock.lock();
 			if (obj->do_trans_update) {
 				obj->do_trans_update = false;
-				obj->motion_state->setWorldTransform(obj->new_trans);
+				if (obj->properties.kinematic) obj->motion_state->setWorldTransform(obj->new_trans);
+				else obj->body->setWorldTransform(obj->new_trans);
 				obj->body->activate(true);
 			}
+			//if (obj->properties.actor && ! obj->is_disabled) {
+			//	obj->body->applyCentralForce( -w->world->getGravity() * obj->properties.mass );
+			//}
 			obj->objlock.unlock();
 		}
 		
@@ -217,12 +248,13 @@ static void bullet_world_thread_loop(phys_world_t * w) {
 		
 		for (phys_object_t * obj : w->objects) {
 			obj->objlock.lock();
-			obj->motion_state->getWorldTransform(obj->trans_cache);
+			if (obj->properties.kinematic) obj->motion_state->getWorldTransform(obj->trans_cache);
+			else obj->trans_cache = obj->body->getWorldTransform();
 			obj->objlock.unlock();
 		}
 		w->simlock.unlock();
 		
-	}
+	//}
 }
 
 phys_world_t * Phys_World_Create(phys_touch_callback touch_cb) {
@@ -239,8 +271,8 @@ phys_world_t * Phys_World_Create(phys_touch_callback touch_cb) {
 	nw->world->setForceUpdateAllAabbs(false);
 	
 	nw->touch_cb = touch_cb;
-
-	nw->thr = new std::thread {bullet_world_thread_loop, nw};
+	
+	//nw->thr = new std::thread {bullet_world_thread_loop, nw};
 	
 	world_map[nw->world] = nw;
 	
@@ -254,6 +286,7 @@ void Phys_World_Destroy(phys_world_t * w) {
 
 void Phys_World_Advance(phys_world_t * world, int time) {
 	world->advance += time;
+	bullet_world_thread_loop(world);
 }
 
 void Phys_World_Set_Resolution(phys_world_t * world, unsigned int resolution) {
@@ -356,7 +389,7 @@ void * gptp_surface_task(void * arg) {
 	}
 }
 
-void Phys_World_Add_Current_Map(phys_world_t * world) {
+void Phys_World_Add_Current_Map(phys_world_t * world, void * world_token) {
 	
 	if (world->map_static) delete world->map_static;
 	
@@ -400,10 +433,11 @@ void Phys_World_Add_Current_Map(phys_world_t * world) {
 		0,
 		qfalse,
 		qfalse,
-		nullptr,
+		CONTENTS_SOLID,
+		world_token,
 	};
 	
-	world->map_static = new phys_object_t;
+	world->map_static = new phys_object_t {world->world};
 	world->map_static->properties = world_props;
 	world->map_static->is_compound = true;
 	btd.cs->recalculateLocalAabb();
@@ -414,7 +448,7 @@ void Phys_World_Add_Current_Map(phys_world_t * world) {
 	world->map_static->body = new btRigidBody {CI};
 	world->world->addRigidBody(world->map_static->body);
 	
-	world->map_static_slick = new phys_object_t;
+	world->map_static_slick = new phys_object_t {world->world};
 	world->map_static->properties = world_props;
 	world->map_static_slick->is_compound = true;
 	btd.css->recalculateLocalAabb();
@@ -447,7 +481,7 @@ static void bullet_world_add_object(phys_world_t * w, phys_object_t * obj) {
 }
 
 phys_object_t * Phys_Object_Create_Box(phys_world_t * w, vec3_t mins, vec3_t maxs, phys_transform_t * initial_transform, phys_properties_t * properties) {
-	phys_object_t * obj = new phys_object_t;
+	phys_object_t * obj = new phys_object_t {w->world};
 	
 	obj->properties = *properties;
 	
@@ -481,8 +515,42 @@ phys_object_t * Phys_Object_Create_Box(phys_world_t * w, vec3_t mins, vec3_t max
 	return obj;
 }
 
+phys_object_t * Phys_Object_Create_Capsule(phys_world_t * w, float cylinder_height, float radius, float v_center_offs, phys_transform_t * initial_transform, phys_properties_t * properties) {
+	phys_object_t * obj = new phys_object_t {w->world};
+	
+	obj->properties = *properties;
+	
+	if (v_center_offs) {
+		btCompoundShape * cmp = new btCompoundShape;
+		btCapsuleShapeZ * cap = new btCapsuleShapeZ {radius, cylinder_height};
+		cmp->addChildShape( btTransform { btQuaternion {0, 0, 0, 1}, btVector3 {0, 0, v_center_offs} }, cap );
+		obj->shape = cmp;
+		obj->is_compound = true;
+	} else {
+		btCapsuleShapeZ * cap = new btCapsuleShapeZ {radius, cylinder_height};
+		obj->shape = cap;
+	}
+	
+	if (obj->properties.mass < 0) {
+		obj->properties.mass = -obj->properties.mass * ((M_PI * pow(radius, 2) * cylinder_height) + ( (4.0f/3.0f) * M_PI * pow(radius, 3) ));
+	}
+	
+	obj->motion_state = new btDefaultMotionState { btTransform { 
+		btQuaternion { initial_transform->angles[0] * d2r_mult, initial_transform->angles[2] * d2r_mult, initial_transform->angles[1] * d2r_mult }, 
+		btVector3 {initial_transform->origin[0], initial_transform->origin[1], initial_transform->origin[2]} } };
+	
+	obj->shape->calculateLocalInertia(obj->properties.mass, obj->inertia);
+	btRigidBody::btRigidBodyConstructionInfo CI {obj->properties.mass, obj->motion_state, obj->shape, obj->inertia};
+	obj->body = new btRigidBody {CI};
+	
+	obj->set_properties();
+	bullet_world_add_object(w, obj);
+	
+	return obj;
+}
+
 phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * path, phys_transform_t * initial_transform, phys_properties_t * properties, float scale) {
-	phys_object_t * no = new phys_object_t;
+	phys_object_t * no = new phys_object_t {world->world};
 	
 	no->properties = *properties;
 	
@@ -634,7 +702,7 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 	int * patches = new int [surfaces_max];
 	CM_SubmodelIndicies(modeli, brushes, patches, &brushes_num, &surfaces_num);
 	
-	phys_object_t * no = new phys_object_t;
+	phys_object_t * no = new phys_object_t {world->world};
 	no->properties = *properties;
 	no->is_compound = true;
 	btCompoundShape * cs = new btCompoundShape;
@@ -727,4 +795,28 @@ void Phys_Object_Set_Properties(phys_object_t * obj) {
 	obj->objlock.lock();
 	obj->set_properties();
 	obj->objlock.unlock();
+}
+
+void Phys_Object_Force(phys_object_t *, vec3_t lin, vec3_t ang) {
+	
+}
+
+void Phys_Object_Impulse(phys_object_t *, vec3_t lin, vec3_t ang) {
+	
+}
+
+void Phys_Obj_Set_Linear_Velocity(phys_object_t * obj, vec3_t lin) {
+	obj->body->setLinearVelocity(q32bt_vec3(lin));
+}
+
+void Phys_Obj_Get_Linear_Velocity(phys_object_t * obj, vec3_t lin) {
+	bt2q3_vec3(obj->body->getLinearVelocity(), lin);
+}
+
+void Phys_Obj_Set_Angular_Velocity(phys_object_t * obj, vec3_t ang) {
+	obj->body->setAngularVelocity(q32bt_vec3(ang));
+}
+
+void Phys_Obj_Get_Angular_Velocity(phys_object_t * obj, vec3_t ang) {
+	bt2q3_vec3(obj->body->getAngularVelocity(), ang);
 }

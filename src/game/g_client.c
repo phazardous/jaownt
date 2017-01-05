@@ -3853,7 +3853,7 @@ void ClientSpawn(gentity_t *ent) {
 	trap->ICARUS_FreeEnt( (sharedEntity_t *)ent );
 	trap->ICARUS_InitEnt( (sharedEntity_t *)ent );
 	
-	G_Phys_AddHitboxKinematic(ent);
+	G_Phys_AddClientCapsule(ent);
 }
 
 
