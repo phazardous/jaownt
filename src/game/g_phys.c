@@ -7,21 +7,84 @@ static vec3_t nullvec = {0, 0, 0};
 
 #define VELLERP_THRESH 30
 
-static void vellerp(vec3_t player_vel, vec3_t other_vel, float lerp, qboolean clip_low, vec3_t out) {
-	out[0] = player_vel[0] * lerp + other_vel[0] * (1 - lerp);
-	out[1] = player_vel[1] * lerp + other_vel[1] * (1 - lerp);
-	out[2] = player_vel[2] * lerp + other_vel[2] * (1 - lerp);
+static void vellerp(vec3_t v1, vec3_t v2, float lerp, vec3_t out) {
+	out[0] = v1[0] * lerp + v2[0] * (1 - lerp);
+	out[1] = v1[1] * lerp + v2[1] * (1 - lerp);
+	out[2] = v1[2] * lerp + v2[2] * (1 - lerp);
+}
+
+static void g_touch_cb_do(phys_world_t * w, phys_collision_t * col, gentity_t * entThis,  gentity_t * entOther) {
 	
-	if (clip_low) {
-		vec3_t diff;
-		VectorSet( diff, fabs(player_vel[0] - other_vel[0]), fabs(player_vel[1] - other_vel[1]), fabs(player_vel[2] - other_vel[2]) );
-		if (fabs(diff[0]) + fabs(diff[1]) + fabs(diff[2]) < VELLERP_THRESH) {
-			VectorCopy(other_vel, out);
+	if (col->normal[2] < -0.707 && !entThis->client->pers.cmd.upmove) { // 45 degrees is maximum walkable surface angle -- TODO: cvar
+		
+		// on floor, move velocity closer to floor's
+		if (entOther == &g_entities[ENTITYNUM_WORLD]) {
+			VectorClear(entThis->phys_post_target_velocity);
+		} else {
+			trap->Phys_Obj_Get_Linear_Velocity(entOther->phys, entThis->phys_post_target_velocity);
 		}
+		entThis->phys_post_do_vellerp = qtrue;
+		
+		entThis->playerState->eFlags |= EF_ON_PHYS;
+		entThis->playerState->groundEntityNum = entOther->s.number;
+		trap->LinkEntity((sharedEntity_t *)entThis);
+		
+		trap->Print("%f\n", col->impulse);
+		
+		/*
+		vec3_t right, apply, curvel;
+		trap->Phys_Object_Get_Origin(entThis->phys, btorig);
+		trap->Phys_Obj_Get_Linear_Velocity(entThis->phys, curvel);
+		AngleVectors(entThis->playerState->viewangles, NULL, right, NULL);
+		VectorCopy(btorig, down);
+		down[2] -= 240;
+		trap->Trace (&tr, btorig, entThis->r.mins, entThis->r.maxs, down, entThis->playerState->clientNum, MASK_PLAYERSOLID, qfalse, 0, 10);
+		CrossProduct(tr.plane.normal, right, apply);
+		VectorScale(apply, VectorLength(curvel), apply);
+		trap->Print("(%f, %f, %f)\n", tr.plane.normal[0], tr.plane.normal[1], tr.plane.normal[2]);
+		trap->Phys_Obj_Set_Linear_Velocity(entThis->phys, apply);
+		*/
+		
+		/*
+		phys_trace_t tr;
+		vec3_t start, end, right, curvel, apply, cvn, an;
+		trap->Phys_Object_Get_Origin(entThis->phys, start);
+		VectorCopy(start, end);
+		end[2] -= 200 + fabs(entThis->r.mins[2]);
+		trap->Phys_World_Trace(gworld, start, end, &tr);
+		if (tr.hit_object) {
+			AngleVectors(entThis->playerState->viewangles, NULL, right, NULL);
+			trap->Phys_Obj_Get_Linear_Velocity(entThis->phys, curvel);
+			CrossProduct(tr.hit_normal, right, apply);
+			VectorScale(apply, VectorLength(curvel), apply);
+			VectorNormalize2(curvel, cvn);
+			VectorNormalize2(apply, an);
+			float v = DotProduct(cvn, an);
+			if (v < 0) v = 0;
+			vellerp(apply, curvel, v, apply);
+			trap->Phys_Obj_Set_Linear_Velocity(entThis->phys, apply);
+		}
+		*/
 	}
+	
+	/*
+	trap->Phys_Object_Get_Origin(entThis->phys, btorig);
+	VectorCopy(btorig, up);
+	up[2] += STEPSIZE;
+	trap->Trace (&tr, btorig, entThis->r.mins, entThis->r.maxs, up, entThis->playerState->clientNum, MASK_PLAYERSOLID, qfalse, 0, 10);
+	step_size = tr.endpos[2] - btorig[2];
+	VectorCopy(tr.endpos, btorig);
+	
+	VectorCopy (btorig, down);
+	down[2] -= step_size;
+	trap->Trace (&tr, btorig, entThis->r.mins, entThis->r.maxs, down, entThis->playerState->clientNum, MASK_PLAYERSOLID, qfalse, 0, 10);
+	VectorCopy(tr.endpos, btorig);
+	trap->Phys_Object_Set_Origin(entThis->phys, btorig);
+	*/
 }
 
 static void g_touch_cb(phys_world_t * w, phys_collision_t * col) {
+	
 	assert(w == gworld);
 	
 	phys_properties_t * propsA = trap->Phys_Object_Get_Properties(col->A);
@@ -34,39 +97,23 @@ static void g_touch_cb(phys_world_t * w, phys_collision_t * col) {
 
 	gentity_t * entClient = NULL;
 	gentity_t * entOther = NULL;
-	float * hitClient;
-	float * hitOther;
+	qboolean cli2 = qfalse;
 	
 	if (entA->s.eType == ET_PLAYER || entA->s.eType == ET_NPC) {
 		entClient = entA;
 		entOther = entB;
-		hitClient = col->posA;
-		hitOther = col->posB;
 	}
 	if (entB->s.eType == ET_PLAYER || entB->s.eType == ET_NPC) {
-		if (entClient) return; // client on client collisions are irrelevant (for now) -- TODO
+		if (entClient) cli2 = qtrue;
 		entClient = entB;
 		entOther = entA;
-		hitClient = col->posB;
-		hitOther = col->posA;
-		VectorInverse(col->normal);
 	}
 	
 	if (!entClient) return; // collisions not involving a client are irrelevant
 	
-	if (col->normal[2] > col->normal[0] && col->normal[2] > col->normal[1] && entClient->playerState->velocity[2] <= 0) {
-		
-		// on floor, move velocity closer to floor's
-		if (entOther == &g_entities[ENTITYNUM_WORLD]) {
-			VectorClear(entClient->phys_post_target_velocity);
-		} else {
-			trap->Phys_Obj_Get_Linear_Velocity(entOther->phys, entClient->phys_post_target_velocity);
-		}
-		entClient->phys_post_do_vellerp = qtrue;
-		
-		entClient->playerState->eFlags |= EF_ON_PHYS;
-		entClient->playerState->groundEntityNum = entOther->s.number;
-		trap->LinkEntity((sharedEntity_t *)entClient);
+	g_touch_cb_do(w, col, entClient, entOther);
+	if (cli2) {
+		g_touch_cb_do(w, col, entOther, entClient);
 	}
 }
 
@@ -104,10 +151,10 @@ void G_Phys_Frame() {
 	gent = g_entities;
 	for (int i = 0; i < MAX_GENTITIES; i++, gent++) {
 		if (!(gent->client && gent->phys)) continue;
-		phys_transform_t tr;
-		trap->Phys_Object_Get_Transform(gent->phys, &tr);
-		VectorCopy(tr.origin, gent->playerState->origin);
-		VectorCopy(tr.origin, gent->r.currentOrigin);
+		vec3_t btorig;
+		trap->Phys_Object_Get_Origin(gent->phys, btorig);
+		VectorCopy(btorig, gent->playerState->origin);
+		VectorCopy(btorig, gent->r.currentOrigin);
 		trap->Phys_Obj_Get_Linear_Velocity(gent->phys, gent->playerState->velocity);
 		/*
 		if (gent->phys_post_do_vellerp) {
@@ -162,13 +209,15 @@ void G_Phys_UpdateEnt(gentity_t * ent) {
 	case ET_NPC:
 		VectorCopy(ent->r.currentOrigin, trans.origin);
 		VectorCopy(ent->r.currentAngles, trans.angles);
-		trap->Phys_Object_Set_Transform(ent->phys, &trans);
+		trap->Phys_Object_Set_Origin(ent->phys, trans.origin);
+		trap->Phys_Object_Set_Rotation(ent->phys, trans.angles);
 		trap->Phys_Obj_Set_Linear_Velocity(ent->phys, ent->playerState->velocity);
 		break;
 	case ET_MOVER:
 		VectorCopy(ent->r.currentOrigin, trans.origin);
 		VectorCopy(ent->r.currentAngles, trans.angles);
-		trap->Phys_Object_Set_Transform(ent->phys, &trans);
+		trap->Phys_Object_Set_Origin(ent->phys, trans.origin);
+		trap->Phys_Object_Set_Rotation(ent->phys, trans.angles);
 		phys_properties_t * props = trap->Phys_Object_Get_Properties(ent->phys);
 		if (props->contents != ent->r.contents) {
 			props->contents = ent->r.contents;
@@ -177,7 +226,8 @@ void G_Phys_UpdateEnt(gentity_t * ent) {
 		break;
 	case ET_GENERAL:
 	default:
-		trap->Phys_Object_Get_Transform(ent->phys, &trans);
+		trap->Phys_Object_Get_Origin(ent->phys, trans.origin);
+		trap->Phys_Object_Get_Rotation(ent->phys, trans.angles);
 		G_SetOrigin(ent, trans.origin);
 		G_SetAngles(ent, trans.angles);
 		
@@ -206,24 +256,6 @@ void G_Phys_AddBMover(gentity_t * mover) {
 	props.token = mover;
 	
 	mover->phys = trap->Phys_Object_Create_From_BModel(gworld, bmodi, &trans, &props);
-}
-
-void G_Phys_AddHitboxKinematic(gentity_t * ent) {
-	if (ent->phys) trap->Phys_World_Remove_Object(gworld, ent->phys);
-	
-	props.mass = -1;
-	props.friction = 0;
-	props.restitution = 0;
-	props.dampening = 0;
-	props.actor = qtrue;
-	props.kinematic = qfalse;
-	props.contents = ent->r.contents;
-	props.token = ent;
-	
-	VectorCopy(ent->r.currentOrigin, trans.origin);
-	VectorClear(trans.angles);
-	
-	ent->phys = trap->Phys_Object_Create_Box(gworld, ent->r.mins, ent->r.maxs, &trans, &props);
 }
 
 void G_Phys_AddClientCapsule(gentity_t * ent) {

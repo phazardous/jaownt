@@ -36,13 +36,6 @@ struct phys_object_s {
 		this->parent = parent;
 	}
 	
-	std::mutex objlock {};
-	
-	bool do_trans_update = false;
-	
-	btTransform new_trans {};
-	btTransform trans_cache {};
-	
 	phys_properties_t properties {};
 	
 	btVector3 inertia {0, 0, 0}; 
@@ -127,19 +120,7 @@ struct phys_world_s {
 	phys_object_t * map_static = nullptr;
 	phys_object_t * map_static_slick = nullptr;
 	
-	std::mutex simlock {};
-	
-	std::atomic_bool run {true};
-	std::atomic_int advance {0};
-	std::thread * thr = nullptr;
-	
 	~phys_world_s() {
-		run.store(false);
-		
-		if (thr) {
-			thr->join();
-			delete thr;
-		}
 		
 		if (map_static) delete map_static;
 		if (map_static_slick) delete map_static_slick;
@@ -218,45 +199,6 @@ static void bullet_world_substep_cb(btDynamicsWorld *world, btScalar timeStep) {
 	}
 }
 
-static void bullet_world_thread_loop(phys_world_t * w) {
-	//while (w->run) {
-		
-		int adv = w->advance.exchange(0);
-		
-		//if (!adv) {
-		//	std::this_thread::sleep_for(std::chrono::milliseconds(5));
-		//	continue;
-		//}
-		
-		w->simlock.lock();
-		for (phys_object_t * obj : w->objects) {
-			obj->objlock.lock();
-			if (obj->do_trans_update) {
-				obj->do_trans_update = false;
-				if (obj->properties.kinematic) obj->motion_state->setWorldTransform(obj->new_trans);
-				else obj->body->setWorldTransform(obj->new_trans);
-				obj->body->activate(true);
-			}
-			//if (obj->properties.actor && ! obj->is_disabled) {
-			//	obj->body->applyCentralForce( -w->world->getGravity() * obj->properties.mass );
-			//}
-			obj->objlock.unlock();
-		}
-		
-		btScalar advc = adv / 1000.0f;
-		w->world->stepSimulation(advc, w->step_resolution, 1.0f / w->step_resolution);
-		
-		for (phys_object_t * obj : w->objects) {
-			obj->objlock.lock();
-			if (obj->properties.kinematic) obj->motion_state->getWorldTransform(obj->trans_cache);
-			else obj->trans_cache = obj->body->getWorldTransform();
-			obj->objlock.unlock();
-		}
-		w->simlock.unlock();
-		
-	//}
-}
-
 phys_world_t * Phys_World_Create(phys_touch_callback touch_cb) {
 	phys_world_t * nw = new phys_world_t;
 	
@@ -272,8 +214,6 @@ phys_world_t * Phys_World_Create(phys_touch_callback touch_cb) {
 	
 	nw->touch_cb = touch_cb;
 	
-	//nw->thr = new std::thread {bullet_world_thread_loop, nw};
-	
 	world_map[nw->world] = nw;
 	
 	return nw;
@@ -284,21 +224,16 @@ void Phys_World_Destroy(phys_world_t * w) {
 	delete w;
 }
 
-void Phys_World_Advance(phys_world_t * world, int time) {
-	world->advance += time;
-	bullet_world_thread_loop(world);
+void Phys_World_Advance(phys_world_t * w, int time) {
+	w->world->stepSimulation(time / 1000.0f, w->step_resolution, 1.0f / w->step_resolution);
 }
 
 void Phys_World_Set_Resolution(phys_world_t * world, unsigned int resolution) {
-	world->simlock.lock();
 	world->step_resolution = resolution;
-	world->simlock.unlock();
 }
 
 void Phys_World_Set_Gravity(phys_world_t * world, float gravity) {
-	world->simlock.lock();
 	world->world->setGravity( {0, 0, -gravity} );
-	world->simlock.unlock();
 }
 
 #define BP_POINTS_SIZE (2048*4)
@@ -447,6 +382,7 @@ void Phys_World_Add_Current_Map(phys_world_t * world, void * world_token) {
 	btRigidBody::btRigidBodyConstructionInfo CI {0, world->map_static->motion_state, world->map_static->shape, world->map_static->inertia};
 	world->map_static->body = new btRigidBody {CI};
 	world->world->addRigidBody(world->map_static->body);
+	world->object_map[world->map_static->body] = world->map_static;
 	
 	world->map_static_slick = new phys_object_t {world->world};
 	world->map_static->properties = world_props;
@@ -459,25 +395,36 @@ void Phys_World_Add_Current_Map(phys_world_t * world, void * world_token) {
 	world->map_static_slick->body = new btRigidBody {CIS};
 	world->map_static_slick->body->setFriction(0);
 	world->world->addRigidBody(world->map_static_slick->body);
+	world->object_map[world->map_static_slick->body] = world->map_static_slick;
 }
 
 void Phys_World_Remove_Object(phys_world_t * w, phys_object_t * obj) {
-	w->simlock.lock();
 	w->world->removeRigidBody(obj->body);
 	auto i = w->object_map.find(obj->body);
 	if (i != w->object_map.end()) w->object_map.erase(i);
 	w->objects.erase(obj);
 	delete obj;
-	w->simlock.unlock();
+}
+
+void Phys_World_Trace(phys_world_t * w, vec3_t start, vec3_t end, phys_trace_t * tr) {
+	btVector3 bstart = q32bt_vec3(start), bend = q32bt_vec3(end);
+	btCollisionWorld::ClosestRayResultCallback hit {bstart, bend};
+	w->world->rayTest(bstart, bend, hit);
+	
+	memset(tr, 0, sizeof(phys_trace_t));
+	
+	if (hit.hasHit()) {
+		tr->hit_fraction = hit.m_closestHitFraction;
+		bt2q3_vec3(hit.m_hitNormalWorld, tr->hit_normal);
+		bt2q3_vec3(hit.m_hitPointWorld, tr->hit_position);
+		tr->hit_object = w->object_map[hit.m_collisionObject];
+	}
 }
 
 static void bullet_world_add_object(phys_world_t * w, phys_object_t * obj) {
-	w->simlock.lock();
 	w->world->addRigidBody(obj->body);
 	w->objects.insert(obj);
 	w->object_map[obj->body] = obj;
-	obj->trans_cache = obj->body->getWorldTransform();
-	w->simlock.unlock();
 }
 
 phys_object_t * Phys_Object_Create_Box(phys_world_t * w, vec3_t mins, vec3_t maxs, phys_transform_t * initial_transform, phys_properties_t * properties) {
@@ -759,42 +706,59 @@ phys_object_t * Phys_Object_Create_From_BModel(phys_world_t * world, int modeli,
 	return no;
 }
 
-void Phys_Object_Get_Transform(phys_object_t * obj, phys_transform_t * ia) {
-	obj->objlock.lock();
-	
-	btVector3 origin = obj->trans_cache.getOrigin();
-	VectorSet(ia->origin, origin.x(), origin.y(), origin.z());
-	
-	btMatrix3x3 { obj->trans_cache.getRotation() }.getEulerYPR(ia->angles[1], ia->angles[0], ia->angles[2]);
-	VectorScale(ia->angles, r2d_mult, ia->angles);
-	
-	obj->objlock.unlock();
+void Phys_Object_Get_Origin(phys_object_t * obj, vec3_t origin) {
+	if (obj->properties.kinematic) {
+		btTransform trans;
+		obj->motion_state->getWorldTransform(trans);
+		btVector3 borig = trans.getOrigin();
+		VectorSet(origin, borig.x(), borig.y(), borig.z());
+	} else {
+		btTransform & trans = obj->body->getWorldTransform();
+		btVector3 borig = trans.getOrigin();
+		VectorSet(origin, borig.x(), borig.y(), borig.z());
+	}
 }
 
-void Phys_Object_Set_Transform(phys_object_t * obj, phys_transform_t const * ia) {
-	obj->objlock.lock();
-	
-	obj->new_trans.setIdentity();
-	obj->new_trans.setOrigin( {ia->origin[0], ia->origin[1], ia->origin[2]} );
-	obj->new_trans.setRotation( btQuaternion {ia->angles[0] * d2r_mult, ia->angles[2] * d2r_mult, ia->angles[1] * d2r_mult} );
-	
-	obj->do_trans_update = true;
-	
-	obj->objlock.unlock();
+void Phys_Object_Set_Origin(phys_object_t * obj, vec3_t origin) {
+	if (obj->properties.kinematic) {
+		btTransform trans;
+		obj->motion_state->getWorldTransform(trans);
+		trans.setOrigin( { origin[0], origin[1], origin[2] } );
+		obj->motion_state->setWorldTransform(trans);
+	} else {
+		obj->body->getWorldTransform().setOrigin( { origin[0], origin[1], origin[2] } );
+	}
+}
+
+void Phys_Object_Get_Rotation(phys_object_t * obj, vec3_t angles) {
+	if (obj->properties.kinematic) {
+		btTransform trans;
+		obj->motion_state->getWorldTransform(trans);
+		btMatrix3x3 { trans.getRotation() }.getEulerYPR(angles[1], angles[0], angles[2]);
+	} else {
+		btTransform & trans = obj->body->getWorldTransform();
+		btMatrix3x3 { trans.getRotation() }.getEulerYPR(angles[1], angles[0], angles[2]);
+	}
+	VectorScale(angles, r2d_mult, angles);
+}
+
+void Phys_Object_Set_Rotation(phys_object_t * obj, vec3_t angles) {
+	if (obj->properties.kinematic) {
+		btTransform trans;
+		obj->motion_state->getWorldTransform(trans);
+		trans.setRotation( btQuaternion {angles[0] * d2r_mult, angles[2] * d2r_mult, angles[1] * d2r_mult} );
+		obj->motion_state->setWorldTransform(trans);
+	} else {
+		obj->body->getWorldTransform().setRotation( btQuaternion {angles[0] * d2r_mult, angles[2] * d2r_mult, angles[1] * d2r_mult} );
+	}
 }
 
 phys_properties_t * Phys_Object_Get_Properties(phys_object_t * obj ) {
-	phys_properties_t * props;
-	obj->objlock.lock();
-	props = &obj->properties;
-	obj->objlock.unlock();
-	return props;
+	return &obj->properties;
 }
 
 void Phys_Object_Set_Properties(phys_object_t * obj) {
-	obj->objlock.lock();
 	obj->set_properties();
-	obj->objlock.unlock();
 }
 
 void Phys_Object_Force(phys_object_t *, vec3_t lin, vec3_t ang) {

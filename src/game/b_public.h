@@ -24,25 +24,38 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "ai.h"
 
-#define NPCAI_CHECK_WEAPON		0x00000001
-#define NPCAI_BURST_WEAPON		0x00000002
-#define NPCAI_MOVING			0x00000004
-#define NPCAI_TOUCHED_GOAL		0x00000008
-#define NPCAI_PUSHED			0x00000010
-#define NPCAI_NO_COLL_AVOID		0x00000020
-#define NPCAI_BLOCKED			0x00000040
-#define NPCAI_OFF_PATH			0x00000100
-#define NPCAI_IN_SQUADPOINT		0x00000200
-#define NPCAI_STRAIGHT_TO_DESTPOS	0x00000400
-#define NPCAI_NO_SLOWDOWN		0x00001000
-#define NPCAI_LOST				0x00002000	//Can't nav to his goal
-#define NPCAI_SHIELDS			0x00004000	//Has shields, borg can adapt
-#define NPCAI_GREET_ALLIES		0x00008000	//Say hi to nearby allies
-#define NPCAI_FORM_TELE_NAV		0x00010000	//Tells formation people to use nav info to get to
-#define NPCAI_ENROUTE_TO_HOMEWP 0x00020000	//Lets us know to run our lostenemyscript when we get to homeWp
-#define NPCAI_MATCHPLAYERWEAPON 0x00040000	//Match the player's weapon except when it changes during cinematics
-#define NPCAI_DIE_ON_IMPACT		0x00100000	//Next time you crashland, die!
-#define NPCAI_CUSTOM_GRAVITY	0x00200000	//Don't use g_gravity, I fly!
+#define NPCAI_CHECK_WEAPON				0x00000001
+#define NPCAI_BURST_WEAPON				0x00000002
+#define NPCAI_MOVING					0x00000004
+#define NPCAI_TOUCHED_GOAL				0x00000008
+#define NPCAI_PUSHED					0x00000010
+#define NPCAI_NO_COLL_AVOID				0x00000020
+#define NPCAI_BLOCKED					0x00000040
+#define NPCAI_SUBBOSS_CHARACTER			0x00000080	//Alora, tough reborn
+#define NPCAI_OFF_PATH					0x00000100
+#define NPCAI_IN_SQUADPOINT				0x00000200
+#define NPCAI_STRAIGHT_TO_DESTPOS		0x00000400
+#define NPCAI_HEAVY_MELEE				0x00000800	//4x melee damage, dismemberment
+#define NPCAI_NO_SLOWDOWN				0x00001000
+#define NPCAI_LOST						0x00002000	//Can't nav to his goal
+#define NPCAI_SHIELDS					0x00004000	//Has shields, borg can adapt
+#define NPCAI_GREET_ALLIES				0x00008000	//Say hi to nearby allies
+#define NPCAI_FORM_TELE_NAV				0x00010000	//Tells formation people to use nav info to get to
+#define NPCAI_ENROUTE_TO_HOMEWP 		0x00020000	//Lets us know to run our lostenemyscript when we get to homeWp
+#define NPCAI_MATCHPLAYERWEAPON 		0x00040000	//Match the player's weapon except when it changes during cinematics
+#define NPCAI_CUSTOM_GRAVITY			0x00080000	//Don't use g_gravity, I fly!
+#define NPCAI_DIE_ON_IMPACT				0x00100000	//Next time you crashland, die!
+#define NPCAI_WALKING					0x00200000
+#define NPCAI_STOP_AT_LOS				0x00400000	//Stop Running When We Hit LOS
+#define NPCAI_NAV_THROUGH_BREAKABLES	0x00800000	//Navigation allows connections through breakable (func_glass, func_breakable or misc_model_breakable)
+#define NPCAI_KNEEL						0x01000000  //Kneel befor Zod
+#define NPCAI_FLY						0x02000000	//Fly, My Pretty!
+#define NPCAI_FLAMETHROW				0x04000000
+#define NPCAI_ROSH						0x08000000	//I am Rosh, when I'm hurt, drop to one knee and wait for Vil or Dasariah to heal me
+#define NPCAI_HEAL_ROSH					0x10000000	//Constantly look for NPC with NPC_type of rosh_dark, follow him, heal him if needbe
+#define NPCAI_JUMP						0x20000000	//Jump Now
+#define NPCAI_BOSS_CHARACTER			0x40000000	//Boss NPC flag for certain immunities/defenses
+#define NPCAI_NO_JEDI_DELAY				0x80000000	//Reborn/Jedi don't taunt enemy before attacking
 
 //Script flags
 #define	SCF_CROUCHED		0x00000001	//Force ucmd.upmove to be -127
@@ -71,6 +84,12 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define	SCF_NO_ACROBATICS	0x00800000	//Jedi won't jump, roll or cartwheel
 #define	SCF_USE_SUBTITLES	0x01000000	//Regardless of subtitle setting, this NPC will display subtitles when it speaks lines
 #define	SCF_NO_ALERT_TALK	0x02000000	//Will not say alert sounds, but still can be woken up by alerts
+#define SCF_NAV_CAN_FLY		0x04000000	//Navigation allows connections through air
+#define SCF_FLY_WITH_JET	0x08000000	//Must Fly With A Jet
+#define	SCF_PILOT			0x10000000	//Can pilot a vehicle
+#define	SCF_NAV_CAN_JUMP	0x20000000	//Can attempt to jump when blocked
+#define	SCF_FIRE_WEAPON_NO_ANIM	0x40000000	//Fire weapon but don't play weapon firing anim
+#define	SCF_SAFE_REMOVE		0x80000000	//Remove NPC when it's safe (when player isn't looking)
 
 //#ifdef __DEBUG
 
@@ -235,6 +254,16 @@ typedef struct
 	int			blockedDebounceTime;
 	int			shoveCount;
 	vec3_t		blockedDest;
+	
+	//jump info
+	vec3_t		jumpDest;					// Where The Actor Is Trying To Jump TO
+	gentity_t*	jumpTarget;					// What Entity The Actor Is Trying To Jump TO
+	float		jumpMaxXYDist;				// The Minimal Delta On The XY Plane Allowed To Jump To The Dest
+	float		jumpMazZDist;
+	int			jumpSide;					// Which Side The Last Jump Occured On
+	int			jumpTime;					// When The Last Jump Started
+	int			jumpBackupTime;				// If Active, Then The Guy Should Backup Before Jumping
+	int			jumpNextCheckTime;			// The Minimal Next Time To Check For A Jump
 
 	//
 	int			combatPoint;//NPCs in bState BS_COMBAT_POINT will find their closest empty combat_point

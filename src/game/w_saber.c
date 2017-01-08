@@ -7501,7 +7501,7 @@ static qboolean G_KickDownable(gentity_t *ent)
 	return qtrue;
 }
 
-static void G_TossTheMofo(gentity_t *ent, vec3_t tossDir, float tossStr)
+void G_TossTheMofo(gentity_t *ent, vec3_t tossDir, float tossStr)
 {
 	if (!ent->inuse || !ent->client)
 	{ //no good

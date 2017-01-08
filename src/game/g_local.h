@@ -1568,7 +1568,6 @@ void G_Phys_Upd_ClF();
 void G_Phys_UpdateEnt(gentity_t * ent);
 
 void G_Phys_AddBMover(gentity_t * mover);
-void G_Phys_AddHitboxKinematic(gentity_t * ent);
 void G_Phys_AddClientCapsule(gentity_t * ent);
 
 void G_Phys_Remove(gentity_t * ent);

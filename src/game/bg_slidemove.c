@@ -874,6 +874,154 @@ PM_StepSlideMove
 
 ==================
 */
+
+void PM_StepSlideMove( qboolean gravity ) {
+
+	return;
+	
+	vec3_t		start_o, start_v;
+	vec3_t		down_o, down_v;
+	vec3_t		up, down;
+	trace_t		trace;
+	qboolean	isGiant = qfalse;
+	qboolean 	skipStep = qfalse;
+	float		stepSize;
+	bgEntity_t	*pEnt;
+
+	
+	VectorCopy (pm->ps->origin, start_o);
+	VectorCopy (pm->ps->velocity, start_v);
+	
+	if ( BG_InReboundHold( pm->ps->legsAnim ) ) gravity = qfalse;
+	
+	pEnt = pm_entSelf;
+
+	if (pm->ps->clientNum >= MAX_CLIENTS)
+	{
+		if (pEnt && pEnt->s.NPC_class == CLASS_VEHICLE &&
+			pEnt->m_pVehicle && pEnt->m_pVehicle->m_pVehicleInfo->hoverHeight > 0)
+		{
+			return;
+		}
+	}
+	
+	VectorCopy(start_o, down);
+	down[2] -= STEPSIZE;
+	pm->trace (&trace, start_o, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
+	VectorSet(up, 0, 0, 1);
+	if ( pm->ps->velocity[2] > 0 && (trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7)) return;
+	
+	VectorCopy (pm->ps->origin, down_o);
+	VectorCopy (pm->ps->velocity, down_v);
+	
+	VectorCopy (start_o, up);
+	
+	if (pm->ps->clientNum >= MAX_CLIENTS) {
+		// apply ground friction, even if on ladder
+		if (pEnt &&
+			(pEnt->s.NPC_class == CLASS_ATST ||
+			(pEnt->s.NPC_class == CLASS_VEHICLE && pEnt->m_pVehicle && pEnt->m_pVehicle->m_pVehicleInfo->type == VH_WALKER) ) )
+		{//AT-STs can step high
+			up[2] += 66.0f;
+			isGiant = qtrue;
+		} else if ( pEnt && pEnt->s.NPC_class == CLASS_RANCOR ) {//also can step up high
+			up[2] += 64.0f;
+			isGiant = qtrue;
+		} else {
+			up[2] += STEPSIZE;
+		}
+	} else {
+		up[2] += STEPSIZE;
+	}
+	
+	pm->trace (&trace, start_o, pm->mins, pm->maxs, up, pm->ps->clientNum, pm->tracemask);
+	if ( trace.allsolid ) {
+		if ( pm->debugLevel ) {
+			Com_Printf("%i:bend can't step\n", c_pmove);
+		}
+		return;		// can't step up
+	}
+	
+	stepSize = trace.endpos[2] - start_o[2];
+	// try slidemove from this position
+	VectorCopy (trace.endpos, pm->ps->origin);
+	VectorCopy (start_v, pm->ps->velocity);
+
+	// push down the final amount
+	VectorCopy (pm->ps->origin, down);
+	down[2] -= stepSize;
+	pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
+
+	if ( pm->stepSlideFix )
+	{
+		if ( pm->ps->clientNum < MAX_CLIENTS
+			&& trace.plane.normal[2] < MIN_WALK_NORMAL )
+		{//normal players cannot step up slopes that are too steep to walk on!
+			vec3_t stepVec;
+			//okay, the step up ends on a slope that it too steep to step up onto,
+			//BUT:
+			//If the step looks like this:
+			//  (B)\__
+			//        \_____(A)
+			//Then it might still be okay, so we figure out the slope of the entire move
+			//from (A) to (B) and if that slope is walk-upabble, then it's okay
+			VectorSubtract( trace.endpos, down_o, stepVec );
+			VectorNormalize( stepVec );
+			if ( stepVec[2] > (1.0f-MIN_WALK_NORMAL) )
+			{
+				skipStep = qtrue;
+			}
+		}
+	}
+
+	if ( !trace.allsolid
+		&& !skipStep ) //normal players cannot step up slopes that are too steep to walk on!
+	{
+		if ( pm->ps->clientNum >= MAX_CLIENTS//NPC
+			&& isGiant
+			&& trace.entityNum < MAX_CLIENTS
+			&& pEnt
+			&& pEnt->s.NPC_class == CLASS_RANCOR )
+		{//Rancor don't step on clients
+			if ( pm->stepSlideFix )
+			{
+				VectorCopy (down_o, pm->ps->origin);
+				VectorCopy (down_v, pm->ps->velocity);
+			}
+			else
+			{
+				VectorCopy (start_o, pm->ps->origin);
+				VectorCopy (start_v, pm->ps->velocity);
+			}
+		}
+		else
+		{
+			VectorCopy (trace.endpos, pm->ps->origin);
+			if ( pm->stepSlideFix )
+			{
+				if ( trace.fraction < 1.0 ) {
+					PM_ClipVelocity( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP );
+				}
+			}
+		}
+	}
+	else
+	{
+		if ( pm->stepSlideFix )
+		{
+			VectorCopy (down_o, pm->ps->origin);
+			VectorCopy (down_v, pm->ps->velocity);
+		}
+	}
+	if ( !pm->stepSlideFix )
+	{
+		if ( trace.fraction < 1.0 ) {
+			PM_ClipVelocity( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP );
+		}
+	}
+}
+
+/*
 void PM_StepSlideMove( qboolean gravity ) {
 	vec3_t		start_o, start_v;
 	vec3_t		down_o, down_v;
@@ -1015,18 +1163,18 @@ void PM_StepSlideMove( qboolean gravity ) {
 				VectorCopy (start_v, pm->ps->velocity);
 			}
 		}
-		/*
-		else if ( pm->ps->clientNum >= MAX_CLIENTS//NPC
-			&& isGiant
-			&& trace.entityNum < MAX_CLIENTS
-			&& pEnt
-			&& pEnt->s.NPC_class == CLASS_ATST
-			&& OnSameTeam( pEnt, traceEnt) )
-		{//NPC AT-ST's don't step up on allies
-			VectorCopy (start_o, pm->ps->origin);
-			VectorCopy (start_v, pm->ps->velocity);
-		}
-		*/
+		//
+		//else if ( pm->ps->clientNum >= MAX_CLIENTS//NPC
+		//	&& isGiant
+		//	&& trace.entityNum < MAX_CLIENTS
+		//	&& pEnt
+		//	&& pEnt->s.NPC_class == CLASS_ATST
+		//	&& OnSameTeam( pEnt, traceEnt) )
+		//{//NPC AT-ST's don't step up on allies
+		//	VectorCopy (start_o, pm->ps->origin);
+		//	VectorCopy (start_v, pm->ps->velocity);
+		//}
+		//
 		else
 		{
 			VectorCopy (trace.endpos, pm->ps->origin);
@@ -1086,5 +1234,5 @@ void PM_StepSlideMove( qboolean gravity ) {
 		}
 	}
 }
-
+*/
 
