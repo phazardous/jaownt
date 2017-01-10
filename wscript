@@ -271,7 +271,7 @@ def build(bld):
 	### RD-MODERN ###
 	
 		rdmodern_files = bld.path.ant_glob('src/rd-modern/*.cpp')
-		#rdmodern_files += bld.path.ant_glob('src/rd-common/*.cpp')
+		rdmodern_files += bld.path.ant_glob('src/rd-common/*.cpp')
 		rdmodern_files += bld.path.ant_glob('src/ghoul2/*.cpp')
 		rdmodern_files += bld.path.ant_glob('src/qcommon/matcomp.cpp')
 		rdmodern_files += bld.path.ant_glob('src/qcommon/q_math.cpp')
