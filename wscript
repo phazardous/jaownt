@@ -276,9 +276,10 @@ def build(bld):
 		rdmodern_files += bld.path.ant_glob('src/qcommon/matcomp.cpp')
 		rdmodern_files += bld.path.ant_glob('src/qcommon/q_math.cpp')
 		rdmodern_files += bld.path.ant_glob('src/qcommon/q_shared.cpp')
+		rdmodern_files += bld.path.ant_glob('src/rd-modern/glad.c')
 		
 		rdmodern = bld (
-			features = 'cxx cxxshlib',
+			features = 'cxx cxxshlib c cshlib',
 			target = 'rd-modern',
 			includes = ['src', 'src/rd-modern'],
 			source = rdmodern_files,
