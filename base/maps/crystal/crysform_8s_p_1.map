@@ -1,0 +1,102 @@
+// entity 0
+{
+"classname" "worldspawn"
+"angles" "0 45 15"
+// brush 0
+{
+( 16 120 -64 ) ( -128 120 -64 ) ( -128 -24 -64 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+( -128 -24 0 ) ( -128 120 0 ) ( 16 120 0 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+( 368 -512 8 ) ( 512 -512 8 ) ( 512 -512 0 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+( 512 -512 8 ) ( 512 -368 8 ) ( 512 -368 0 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+( -368 512 8 ) ( -512 512 8 ) ( -512 512 0 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+( -512 512 8 ) ( -512 368 8 ) ( -512 368 0 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+}
+}
+// entity 1
+{
+"classname" "misc_model"
+"origin" "0 0 -64"
+"model" "maps/crystal/crys_8s_p_taller.ase"
+"modelscale" "2"
+"angles" "0 64 0"
+}
+// entity 2
+{
+"angles" "0 64 15"
+"modelscale" "2"
+"model" "maps/crystal/crys_8s_p_tall.ase"
+"origin" "64 72 -64"
+"classname" "misc_model"
+}
+// entity 3
+{
+"classname" "misc_model"
+"origin" "184 160 -64"
+"model" "maps/crystal/crys_8s_p_tall.ase"
+"modelscale" "1.5"
+"angles" "0 100 15"
+}
+// entity 4
+{
+"angles" "0 150 15"
+"modelscale" "1.25"
+"model" "maps/crystal/crys_8s_p_taller.ase"
+"origin" "32 192 -64"
+"classname" "misc_model"
+}
+// entity 5
+{
+"classname" "misc_model"
+"origin" "-80 128 -64"
+"model" "maps/crystal/crys_8s_p_tall.ase"
+"modelscale" "1.20"
+"angles" "0 210 15"
+}
+// entity 6
+{
+"angles" "0 240 15"
+"modelscale" "1.75"
+"model" "maps/crystal/crys_8s_p.ase"
+"origin" "-168 -40 -64"
+"classname" "misc_model"
+}
+// entity 7
+{
+"classname" "misc_model"
+"origin" "-64 -160 -64"
+"model" "maps/crystal/crys_8s_p_short.ase"
+"modelscale" "1.9"
+"angles" "0 320 15"
+}
+// entity 8
+{
+"angles" "0 45 15"
+"modelscale" "1.2"
+"model" "maps/crystal/crys_8s_p_taller.ase"
+"origin" "128 -168 -64"
+"classname" "misc_model"
+}
+// entity 9
+{
+"angles" "0 0 15"
+"modelscale" "1"
+"model" "maps/crystal/crys_8s_p.ase"
+"origin" "56 -224 -64"
+"classname" "misc_model"
+}
+// entity 10
+{
+"classname" "misc_model"
+"origin" "264 -168 -64"
+"model" "maps/crystal/crys_8s_p_tall.ase"
+"modelscale" "0.9"
+"angles" "0 65 15"
+}
+// entity 11
+{
+"angles" "0 90 15"
+"modelscale" "1.5"
+"model" "maps/crystal/crys_8s_p_short.ase"
+"origin" "240 -16 -64"
+"classname" "misc_model"
+}

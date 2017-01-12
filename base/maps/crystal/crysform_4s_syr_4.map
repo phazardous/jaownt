@@ -1,0 +1,53 @@
+// entity 0
+{
+"classname" "worldspawn"
+"angles" "0 45 15"
+// brush 0
+{
+( 16 120 -64 ) ( -128 120 -64 ) ( -128 -24 -64 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+( -128 -24 0 ) ( -128 120 0 ) ( 16 120 0 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+( -16 -128 8 ) ( 128 -128 8 ) ( 128 -128 0 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+( 128 -128 8 ) ( 128 16 8 ) ( 128 16 0 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+( 16 128 8 ) ( -128 128 8 ) ( -128 128 0 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+( -128 128 8 ) ( -128 -16 8 ) ( -128 -16 0 ) common/caulk 0 0 0 0.250000 0.250000 0 4 0
+}
+}
+// entity 1
+{
+"classname" "misc_model"
+"origin" "0 0 -64"
+"model" "maps/crystal/crys_4s_syr.ase"
+"modelscale" "1.25"
+"angles" "0 25 0"
+}
+// entity 2
+{
+"model" "maps/crystal/crys_4s_syr.ase"
+"origin" "64 -64 -64"
+"classname" "misc_model"
+"angles" "0 45 20"
+}
+// entity 3
+{
+"angles" "0 180 30"
+"classname" "misc_model"
+"origin" "64 64 -64"
+"model" "maps/crystal/crys_4s_syr_short.ase"
+"modelscale" "0.85"
+}
+// entity 4
+{
+"model" "maps/crystal/crys_4s_syr_short.ase"
+"origin" "-64 0 -64"
+"classname" "misc_model"
+"angles" "15 170 -30"
+"modelscale" "0.9"
+}
+// entity 5
+{
+"model" "maps/crystal/crys_4s_syr.ase"
+"origin" "-56 56 -64"
+"classname" "misc_model"
+"angles" "0 210 45"
+"modelscale" "0.75"
+}

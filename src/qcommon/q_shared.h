@@ -1144,6 +1144,9 @@ void	Swap_Init (void);
 
 int FloatAsInt( float f );
 
+#define	MAX_VA_STRING 8192
+#define MAX_VA_BUFFERS 5
+
 char * QDECL va(const char *format, ...);
 char * QDECL va_next();
 
@@ -1172,6 +1175,14 @@ qboolean Info_NextPair( const char **s, char *key, char *value );
 	void QDECL Com_Printf( const char *msg, ... );
 #endif
 
+#define srcprintf(lev, fmt, ...) Com_Printf(va("%s [%s, line %u]: %s\n", #lev, __PRETTY_FUNCTION__, __LINE__, va(fmt, ##__VA_ARGS__)))
+#define srcprintf_error(fmt, ...) Com_Printf(va("ERROR: [%s, line %u]: %s\n", __PRETTY_FUNCTION__, __LINE__, va(fmt, ##__VA_ARGS__)))
+#define srcprintf_fatal(fmt, ...) Com_Error(ERR_FATAL, va("ERROR: [%s, line %u]: %s\n", __PRETTY_FUNCTION__, __LINE__, va(fmt, ##__VA_ARGS__)))
+#ifdef _DEBUG
+#define srcprintf_debug(fmt, ...) Com_Printf(va("DEBUG: [%s, line %u]: %s\n", __PRETTY_FUNCTION__, __LINE__, va(fmt, ##__VA_ARGS__)))
+#else
+#define srcprintf_debug(fmt, ...)
+#endif
 
 /*
 ==========================================================

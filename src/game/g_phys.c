@@ -29,7 +29,7 @@ static void g_touch_cb_do(phys_world_t * w, phys_collision_t * col, gentity_t * 
 		entThis->playerState->groundEntityNum = entOther->s.number;
 		trap->LinkEntity((sharedEntity_t *)entThis);
 		
-		trap->Print("%f\n", col->impulse);
+		//trap->Print("%f\n", col->impulse);
 		
 		/*
 		vec3_t right, apply, curvel;

@@ -1,22 +1,70 @@
 #include "rd-common/tr_public.h"
 #include "tr_local.h"
 #include "ghoul2/g2_local.h"
-
+#include "rendm_local.h"
 #include "rd-common/tr_font.h"
 
 #include <cstdarg>
 
+trGlobals_t tr;
 refimport_t * ri;
-window_t window;
 glconfig_t glConfig;
 
+cvar_t	*r_noServerGhoul2 = nullptr;
+cvar_t	*r_Ghoul2AnimSmooth = nullptr;
+cvar_t	*r_Ghoul2UnSqashAfterSmooth = nullptr;
+
+cvar_t	*broadsword = nullptr;
+cvar_t	*broadsword_kickbones = nullptr;
+cvar_t	*broadsword_kickorigin = nullptr;
+cvar_t	*broadsword_playflop = nullptr;
+cvar_t	*broadsword_dontstopanim = nullptr;
+cvar_t	*broadsword_waitforshot = nullptr;
+cvar_t	*broadsword_smallbbox = nullptr;
+cvar_t	*broadsword_extra1 = nullptr;
+cvar_t	*broadsword_extra2 = nullptr;
+cvar_t	*broadsword_effcorr = nullptr;
+cvar_t	*broadsword_ragtobase = nullptr;
+cvar_t	*broadsword_dircap = nullptr;
+
 cvar_t * se_language;
+
 cvar_t * r_aspectCorrectFonts;
+cvar_t * r_verbose;
+
+static void TRM_Cvars() {
+	
+	r_noServerGhoul2 = ri->Cvar_Get("r_noserverghoul2", "0", CVAR_CHEAT, "");
+	r_Ghoul2AnimSmooth = ri->Cvar_Get("r_ghoul2animsmooth", "0.3", CVAR_NONE, "");
+	r_Ghoul2UnSqashAfterSmooth = ri->Cvar_Get("r_ghoul2unsqashaftersmooth", "1", CVAR_NONE, "");
+	broadsword = ri->Cvar_Get("broadsword", "0", CVAR_NONE, "");
+	broadsword_kickbones = ri->Cvar_Get("broadsword_kickbones", "1", CVAR_NONE, "");
+	broadsword_kickorigin = ri->Cvar_Get("broadsword_kickorigin", "1", CVAR_NONE, "");
+	broadsword_dontstopanim = ri->Cvar_Get("broadsword_dontstopanim", "0", CVAR_NONE, "");
+	broadsword_waitforshot = ri->Cvar_Get("broadsword_waitforshot", "0", CVAR_NONE, "");
+	broadsword_playflop = ri->Cvar_Get("broadsword_playflop", "1", CVAR_NONE, "");
+	broadsword_smallbbox = ri->Cvar_Get("broadsword_smallbbox", "0", CVAR_NONE, "");
+	broadsword_extra1 = ri->Cvar_Get("broadsword_extra1", "0", CVAR_NONE, "");
+	broadsword_extra2 = ri->Cvar_Get("broadsword_extra2", "0", CVAR_NONE, "");
+	broadsword_effcorr = ri->Cvar_Get("broadsword_effcorr", "1", CVAR_NONE, "");
+	broadsword_ragtobase = ri->Cvar_Get("broadsword_ragtobase", "2", CVAR_NONE, "");
+	broadsword_dircap = ri->Cvar_Get("broadsword_dircap", "64", CVAR_NONE, "");
+
+	se_language = ri->Cvar_Get("se_language", "english", CVAR_ARCHIVE|CVAR_NORESTART, "");
+	r_aspectCorrectFonts = ri->Cvar_Get("r_aspectCorrectFonts", "0", CVAR_ARCHIVE, "");
+	r_verbose = ri->Cvar_Get("r_verbose", "0", CVAR_CHEAT, "");
+}
 
 void TRM_Shutdown( qboolean destroyWindow, qboolean restarting  ) {
-	ri->WIN_Shutdown();
+	rendm::term();
+	if ( restarting ) {
+		SaveGhoul2InfoArray();
+	}
+	if (destroyWindow) ri->WIN_Shutdown();
 	R_ShutdownFonts();
 }
+
+static bool glad_initialized = false;
 
 void TRM_BeginRegistration( glconfig_t *config  ) {
 	
@@ -25,9 +73,12 @@ void TRM_BeginRegistration( glconfig_t *config  ) {
 	Com_Printf("================================\n");
 	
 	windowDesc_t windesc { GRAPHICS_API_OPENGL };
-	window = ri->WIN_Init(&windesc, config);
+	tr.window = ri->WIN_Init(&windesc, config);
 	
-	gladLoadGL();
+	if (!glad_initialized) { // TRM_BeginRegistration can be called more than once, but this only gets called once for the entire program lifetime
+		gladLoadGL();
+		glad_initialized = true;
+	}
 	
 	config->vendor_string = (const char *) glGetString (GL_VENDOR);
 	config->renderer_string = (const char *) glGetString (GL_RENDERER);
@@ -43,22 +94,19 @@ void TRM_BeginRegistration( glconfig_t *config  ) {
 	else config->maxTextureFilterAnisotropy = 0;
 	
 	glEnable(GL_SCISSOR_TEST);
-	
-	glViewport(0, 0, config->vidWidth, config->vidHeight);
-	glScissor(0, 0, config->vidWidth, config->vidHeight);
-	
-	glClearColor(1.0, 0.0, 0.0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	config->isFullscreen = qfalse;
 	config->stereoEnabled = qfalse;
 	
 	glConfig = *config;
 	
-	se_language = ri->Cvar_Get("se_language", "english", CVAR_ARCHIVE | CVAR_NORESTART, "");
-	r_aspectCorrectFonts = ri->Cvar_Get( "r_aspectCorrectFonts", "0", CVAR_ARCHIVE, "");
+	TRM_Cvars();
 	
 	R_InitFonts();
+	
+	if (!rendm::init()) {
+		srcprintf_fatal("Failed to initialize RendM (rd-modern)");
+	}
 	
 	Com_Printf("================================================================\n");
 }
@@ -100,7 +148,7 @@ void TRM_SetWorldVisData( const byte *vis  ) {
 }
 
 void TRM_EndRegistration( void  ) {
-	//TODO
+	// do nothing I think
 }
 
 void TRM_ClearScene( void  ) {
@@ -140,7 +188,7 @@ void TRM_AddAdditiveLightToScene( const vec3_t org, float intensity, float r, fl
 }
 
 void TRM_RenderScene( const refdef_t *fd  ) {
-	//TODO
+	rendm::draw(fd);
 }
 
 void TRM_SetColor( const float *rgba  ) {
@@ -148,7 +196,19 @@ void TRM_SetColor( const float *rgba  ) {
 }
 
 void TRM_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader  ) {
-	//TODO
+	
+	if (w == 0) {
+		w = h * (640.0f / 480.0f);
+	}
+	
+	assert(w != 0 && h != 0);
+	
+	qm::mat4 m = qm::mat4::scale(w, h, 1);
+	m *= qm::mat4::translate(x, y, 0);
+	
+	qm::mat4 p = qm::mat4::ortho(0, 480, 0, 640, 0, 1);
+	
+	rendm::add_sprite( p * m, hShader );
 }
 
 void TRM_DrawRotatePic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, float a1, qhandle_t hShader  ) {
@@ -168,11 +228,11 @@ void TRM_UploadCinematic( int cols, int rows, const byte *data, int client, qboo
 }
 
 void TRM_BeginFrame( stereoFrame_t stereoFrame  ) {
-	//TODO
+	rendm::begin_frame();
 }
 
 void TRM_EndFrame( int *frontEndMsec, int *backEndMsec  ) {
-	ri->WIN_Present(&window);
+	rendm::end_frame();
 }
 
 int TRM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection, int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer  ) {
@@ -322,38 +382,6 @@ void TRM_HunkClearCrap( void  ) {
 	//TODO
 }
 
-int G2API_AddBolt( CGhoul2Info_v &ghoul2, const int modelIndex, const char *boneName  ) {
-	return 0; //TODO
-}
-
-int G2API_AddBoltSurfNum( CGhoul2Info *ghlInfo, const int surfIndex  ) {
-	return 0; //TODO
-}
-
-int G2API_AddSurface( CGhoul2Info *ghlInfo, int surfaceNumber, int polyNumber, float BarycentricI, float BarycentricJ, int lod  ) {
-	return 0; //TODO
-}
-
-void G2API_AnimateG2ModelsRag( CGhoul2Info_v &ghoul2, int AcurrentTime, CRagDollUpdateParams *params  ) {
-	//TODO
-}
-
-qboolean G2API_AttachEnt( int *boltInfo, CGhoul2Info_v& ghoul2, int modelIndex, int toBoltIndex, int entNum, int toModelNum  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_AttachG2Model( CGhoul2Info_v &ghoul2From, int modelFrom, CGhoul2Info_v &ghoul2To, int toBoltIndex, int toModel  ) {
-	return qfalse; //TODO
-}
-
-void G2API_AttachInstanceToEntNum( CGhoul2Info_v &ghoul2, int entityNum, qboolean server  ) {
-	//TODO
-}
-
-void G2API_AbsurdSmoothing( CGhoul2Info_v &ghoul2, qboolean status  ) {
-	//TODO
-}
-
 void G2API_BoltMatrixReconstruction( qboolean reconstruct  ) {
 	//TODO
 }
@@ -361,330 +389,6 @@ void G2API_BoltMatrixReconstruction( qboolean reconstruct  ) {
 void G2API_BoltMatrixSPMethod( qboolean spMethod  ) {
 	//TODO
 }
-
-void G2API_CleanEntAttachments( void  ) {
-	//TODO
-}
-
-void G2API_CleanGhoul2Models( CGhoul2Info_v **ghoul2Ptr  ) {
-	//TODO
-}
-
-void G2API_ClearAttachedInstance( int entityNum  ) {
-	//TODO
-}
-
-void G2API_CollisionDetect( CollisionRecord_t *collRecMap, CGhoul2Info_v &ghoul2, const vec3_t angles, const vec3_t position, int frameNumber, int entNum, vec3_t rayStart, vec3_t rayEnd, vec3_t scale, IHeapAllocator *G2VertSpace, int traceFlags, int useLod, float fRadius  ) {
-	//TODO
-}
-
-void G2API_CollisionDetectCache( CollisionRecord_t *collRecMap, CGhoul2Info_v &ghoul2, const vec3_t angles, const vec3_t position, int frameNumber, int entNum, vec3_t rayStart, vec3_t rayEnd, vec3_t scale, IHeapAllocator *G2VertSpace, int traceFlags, int useLod, float fRadius  ) {
-	//TODO
-}
-
-int G2API_CopyGhoul2Instance( CGhoul2Info_v &g2From, CGhoul2Info_v &g2To, int modelIndex  ) {
-	return 0; //TODO
-}
-
-void G2API_CopySpecificG2Model( CGhoul2Info_v &ghoul2From, int modelFrom, CGhoul2Info_v &ghoul2To, int modelTo  ) {
-	//TODO
-}
-
-qboolean G2API_DetachG2Model( CGhoul2Info *ghlInfo  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_DoesBoneExist( CGhoul2Info_v& ghoul2, int modelIndex, const char *boneName  ) {
-	return qfalse; //TODO
-}
-
-void G2API_DuplicateGhoul2Instance( CGhoul2Info_v &g2From, CGhoul2Info_v **g2To  ) {
-	//TODO
-}
-
-void G2API_FreeSaveBuffer( char *buffer  ) {
-	//TODO
-}
-
-qboolean G2API_GetAnimFileName( CGhoul2Info *ghlInfo, char **filename  ) {
-	return qfalse; //TODO
-}
-
-char * G2API_GetAnimFileNameIndex( qhandle_t modelIndex  ) {
-	return nullptr; //TODO
-}
-
-qboolean G2API_GetAnimRange( CGhoul2Info *ghlInfo, const char *boneName, int *startFrame, int *endFrame  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_GetBoltMatrix( CGhoul2Info_v &ghoul2, const int modelIndex, const int boltIndex, mdxaBone_t *matrix, const vec3_t angles, const vec3_t position, const int frameNum, qhandle_t *modelList, vec3_t scale  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_GetBoneAnim( CGhoul2Info_v& ghoul2, int modelIndex, const char *boneName, const int currentTime, float *currentFrame, int *startFrame, int *endFrame, int *flags, float *animSpeed, qhandle_t *modelList  ) {
-	return qfalse; //TODO
-}
-
-int G2API_GetBoneIndex( CGhoul2Info *ghlInfo, const char *boneName  ) {
-	return 0; //TODO
-}
-
-int G2API_GetGhoul2ModelFlags( CGhoul2Info *ghlInfo  ) {
-	return 0; //TODO
-}
-
-char * G2API_GetGLAName( CGhoul2Info_v &ghoul2, int modelIndex  ) {
-	return nullptr; //TODO
-}
-
-const char * G2API_GetModelName( CGhoul2Info_v& ghoul2, int modelIndex  ) {
-	return nullptr; //TODO
-}
-
-int G2API_GetParentSurface( CGhoul2Info *ghlInfo, const int index  ) {
-	return 0; //TODO
-}
-
-qboolean G2API_GetRagBonePos( CGhoul2Info_v &ghoul2, const char *boneName, vec3_t pos, vec3_t entAngles, vec3_t entPos, vec3_t entScale  ) {
-	return qfalse; //TODO
-}
-
-int G2API_GetSurfaceIndex( CGhoul2Info *ghlInfo, const char *surfaceName  ) {
-	return 0; //TODO
-}
-
-char * G2API_GetSurfaceName( CGhoul2Info_v& ghlInfo, int modelIndex, int surfNumber  ) {
-	return nullptr; //TODO
-}
-
-int G2API_GetSurfaceOnOff( CGhoul2Info *ghlInfo, const char *surfaceName  ) {
-	return 0; //TODO
-}
-
-int G2API_GetSurfaceRenderStatus( CGhoul2Info_v& ghoul2, int modelIndex, const char *surfaceName  ) {
-	return 0; //TODO
-}
-
-int G2API_GetTime( int argTime  ) {
-	return 0; //TODO
-}
-
-int G2API_Ghoul2Size( CGhoul2Info_v &ghoul2  ) {
-	return 0; //TODO
-}
-
-void G2API_GiveMeVectorFromMatrix( mdxaBone_t *boltMatrix, Eorientations flags, vec3_t vec  ) {
-	//TODO
-}
-
-qboolean G2API_HasGhoul2ModelOnIndex( CGhoul2Info_v **ghlRemove, const int modelIndex  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_HaveWeGhoul2Models( CGhoul2Info_v &ghoul2  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_IKMove( CGhoul2Info_v &ghoul2, int time, sharedIKMoveParams_t *params  ) {
-	return qfalse; //TODO
-}
-
-int G2API_InitGhoul2Model( CGhoul2Info_v **ghoul2Ptr, const char *fileName, int modelIndex, qhandle_t customSkin, qhandle_t customShader, int modelFlags, int lodBias  ) {
-	return 0; //TODO
-}
-
-qboolean G2API_IsGhoul2InfovValid( CGhoul2Info_v& ghoul2  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_IsPaused( CGhoul2Info *ghlInfo, const char *boneName  ) {
-	return qfalse; //TODO
-}
-
-void G2API_ListBones( CGhoul2Info *ghlInfo, int frame  ) {
-	//TODO
-}
-
-void G2API_ListSurfaces( CGhoul2Info *ghlInfo  ) {
-	//TODO
-}
-
-void G2API_LoadGhoul2Models( CGhoul2Info_v &ghoul2, char *buffer  ) {
-	//TODO
-}
-
-void G2API_LoadSaveCodeDestructGhoul2Info( CGhoul2Info_v &ghoul2  ) {
-	//TODO
-}
-
-qboolean G2API_OverrideServerWithClientData( CGhoul2Info_v& serverInstance, int modelIndex  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_PauseBoneAnim( CGhoul2Info *ghlInfo, const char *boneName, const int currentTime  ) {
-	return qfalse; //TODO
-}
-
-qhandle_t G2API_PrecacheGhoul2Model( const char *fileName  ) {
-	return 0; //TODO
-}
-
-qboolean G2API_RagEffectorGoal( CGhoul2Info_v &ghoul2, const char *boneName, vec3_t pos  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_RagEffectorKick( CGhoul2Info_v &ghoul2, const char *boneName, vec3_t velocity  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_RagForceSolve( CGhoul2Info_v &ghoul2, qboolean force  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_RagPCJConstraint( CGhoul2Info_v &ghoul2, const char *boneName, vec3_t min, vec3_t max  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_RagPCJGradientSpeed( CGhoul2Info_v &ghoul2, const char *boneName, const float speed  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_RemoveBolt( CGhoul2Info *ghlInfo, const int index  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_RemoveBone( CGhoul2Info_v& ghoul2, int modelIndex, const char *boneName  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_RemoveGhoul2Model( CGhoul2Info_v **ghlRemove, const int modelIndex  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_RemoveGhoul2Models( CGhoul2Info_v **ghlRemove  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_RemoveSurface( CGhoul2Info *ghlInfo, const int index  ) {
-	return qfalse; //TODO
-}
-
-void G2API_ResetRagDoll( CGhoul2Info_v &ghoul2  ) {
-	//TODO
-}
-
-qboolean G2API_SaveGhoul2Models( CGhoul2Info_v &ghoul2, char **buffer, int *size  ) {
-	return qfalse; //TODO
-}
-
-void G2API_SetBoltInfo( CGhoul2Info_v &ghoul2, int modelIndex, int boltInfo  ) {
-	//TODO
-}
-
-qboolean G2API_SetBoneAngles( CGhoul2Info_v &ghoul2, const int modelIndex, const char *boneName, const vec3_t angles, const int flags, const Eorientations up, const Eorientations left, const Eorientations forward, qhandle_t *modelList, int blendTime, int currentTime   ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_SetBoneAnglesIndex( CGhoul2Info *ghlInfo, const int index, const vec3_t angles, const int flags, const Eorientations yaw, const Eorientations pitch, const Eorientations roll, qhandle_t *modelList, int blendTime, int currentTime  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_SetBoneAnglesMatrix( CGhoul2Info *ghlInfo, const char *boneName, const mdxaBone_t &matrix, const int flags, qhandle_t *modelList, int blendTime, int currentTime  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_SetBoneAnglesMatrixIndex( CGhoul2Info *ghlInfo, const int index, const mdxaBone_t &matrix, const int flags, qhandle_t *modelList, int blendTime, int currentTime  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_SetBoneAnim( CGhoul2Info_v &ghoul2, const int modelIndex, const char *boneName, const int startFrame, const int endFrame, const int flags, const float animSpeed, const int currentTime, const float setFrame /*= -1*/, const int blendTime /*= -1*/  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_SetBoneAnimIndex( CGhoul2Info *ghlInfo, const int index, const int startFrame, const int endFrame, const int flags, const float animSpeed, const int currentTime, const float setFrame, const int blendTime  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_SetBoneIKState( CGhoul2Info_v &ghoul2, int time, const char *boneName, int ikState, sharedSetBoneIKStateParams_t *params  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_SetGhoul2ModelFlags( CGhoul2Info *ghlInfo, const int flags  ) {
-	return qfalse; //TODO
-}
-
-void G2API_SetGhoul2ModelIndexes( CGhoul2Info_v &ghoul2, qhandle_t *modelList, qhandle_t *skinList  ) {
-	//TODO
-}
-
-qboolean G2API_SetLodBias( CGhoul2Info *ghlInfo, int lodBias  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_SetNewOrigin( CGhoul2Info_v &ghoul2, const int boltIndex  ) {
-	return qfalse; //TODO
-}
-
-void G2API_SetRagDoll( CGhoul2Info_v &ghoul2, CRagDollParams *parms  ) {
-	//TODO
-}
-
-qboolean G2API_SetRootSurface( CGhoul2Info_v &ghoul2, const int modelIndex, const char *surfaceName  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_SetShader( CGhoul2Info *ghlInfo, qhandle_t customShader  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_SetSkin( CGhoul2Info_v& ghoul2, int modelIndex, qhandle_t customSkin, qhandle_t renderSkin  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_SetSurfaceOnOff( CGhoul2Info_v &ghoul2, const char *surfaceName, const int flags  ) {
-	return qfalse; //TODO
-}
-
-void G2API_SetTime( int currentTime, int clock  ) {
-	//TODO
-}
-
-qboolean G2API_SkinlessModel( CGhoul2Info_v& ghoul2, int modelIndex  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_StopBoneAngles( CGhoul2Info *ghlInfo, const char *boneName  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_StopBoneAnglesIndex( CGhoul2Info *ghlInfo, const int index  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_StopBoneAnim( CGhoul2Info *ghlInfo, const char *boneName  ) {
-	return qfalse; //TODO
-}
-
-qboolean G2API_StopBoneAnimIndex( CGhoul2Info *ghlInfo, const int index  ) {
-	return qfalse; //TODO
-}
-
-
-#ifdef _G2_GORE
-int G2API_GetNumGoreMarks( CGhoul2Info_v& ghoul2, int modelIndex  ) {
-	return 0; //TODO
-}
-
-void G2API_AddSkinGore( CGhoul2Info_v &ghoul2, SSkinGoreData &gore  ) {
-	//TODO
-}
-
-void G2API_ClearSkinGore( CGhoul2Info_v &ghoul2  ) {
-	//TODO
-}
-
-#endif // _G2_GORE
 
 float TRM_Font_StrLenPixelsNew( const char *text, const int iFontIndex, const float scale  ) {
 	return RE_Font_StrLenPixelsNew(text, iFontIndex, scale);
@@ -876,11 +580,11 @@ extern "C" Q_EXPORT refexport_t* QDECL GetRefAPI( int apiVersion, refimport_t *r
 }
 
 void RE_SetColor( const float *rgba ) {
-	// TODO -- change "color" ???
+	TRM_SetColor(rgba);
 }
 
 void RE_StretchPic ( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader ) {
-	// TODO -- stretch.... something??? it's font related
+	TRM_DrawStretchPic(x, y, w, h, s1, t1, s2, t2, hShader);
 }
 
 qhandle_t RE_RegisterShaderNoMip( char const * sh ) {
@@ -957,3 +661,55 @@ void Z_MorphMallocTag( void *pvBuffer, memtag_t eDesiredTag ) {
 	ri->Z_MorphMallocTag( pvBuffer, eDesiredTag );
 }
 
+qboolean ShaderHashTableExists() {
+	return qfalse;
+}
+
+skin_t * TRM_GetSkinByHandle(qhandle_t) {
+	return nullptr;
+}
+
+model_t * TRM_GetModelByHandle( qhandle_t hModel ) {
+	return nullptr;
+}
+
+shader_t * TRM_GetShaderByHandle(qhandle_t) {
+	return nullptr;
+}
+
+float ProjectRadius( float r, vec3_t location )
+{
+	float pr;
+	float dist;
+	float c;
+	vec3_t	p;
+	float width;
+	float depth;
+
+	c = DotProduct( tr.viewParms.ori.axis[0], tr.viewParms.ori.origin );
+	dist = DotProduct( tr.viewParms.ori.axis[0], location ) - c;
+
+	if ( dist <= 0 )
+		return 0;
+
+	p[0] = 0;
+	p[1] = Q_fabs( r );
+	p[2] = -dist;
+
+	width = p[0] * tr.viewParms.projectionMatrix[1] +
+		           p[1] * tr.viewParms.projectionMatrix[5] +
+				   p[2] * tr.viewParms.projectionMatrix[9] +
+				   tr.viewParms.projectionMatrix[13];
+
+	depth = p[0] * tr.viewParms.projectionMatrix[3] +
+		           p[1] * tr.viewParms.projectionMatrix[7] +
+				   p[2] * tr.viewParms.projectionMatrix[11] +
+				   tr.viewParms.projectionMatrix[15];
+
+	pr = width / depth;
+
+	if ( pr > 1.0f )
+		pr = 1.0f;
+
+	return pr;
+}
