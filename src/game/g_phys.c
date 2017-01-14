@@ -224,6 +224,7 @@ void G_Phys_UpdateEnt(gentity_t * ent) {
 			trap->Phys_Object_Set_Properties(ent->phys);
 		}
 		break;
+	case ET_PROP:
 	case ET_GENERAL:
 	default:
 		trap->Phys_Object_Get_Origin(ent->phys, trans.origin);
@@ -312,6 +313,13 @@ void G_TEST_PhysTestEnt(vec3_t pos) {
 	
 	physent->phys = trap->Phys_Object_Create_From_Obj(gworld, testmodels[testm_i], &trans, &props, 1);
 	physent->s.modelindex = G_ModelIndex(testmodels[testm_i]);
+	
+	phys_properties_t * nprops = trap->Phys_Object_Get_Properties(physent->phys);
+	VectorCopy(nprops->mins, physent->r.mins);
+	VectorCopy(nprops->maxs, physent->r.maxs);
+	
+	physent->r.contents = MASK_PLAYERSOLID;
+	physent->s.eType = ET_PROP;
 	
 	G_SetOrigin(physent, pos);
 	trap->LinkEntity( (sharedEntity_t *) physent);

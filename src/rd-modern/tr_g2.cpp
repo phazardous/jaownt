@@ -728,79 +728,6 @@ int G2_GetParentBoneMatrixLow(CGhoul2Info &ghoul2,int boneNum,const vec3_t scale
 }
 //rww - RAGDOLL_END
 
-class CRenderSurface
-{
-public:
-	int				surfaceNum;
-	surfaceInfo_v	&rootSList;
-	shader_t		*cust_shader;
-	int				fogNum;
-	qboolean		personalModel;
-	CBoneCache		*boneCache;
-	int				renderfx;
-	skin_t			*skin;
-	model_t			*currentModel;
-	int				lod;
-	boltInfo_v		&boltList;
-#ifdef _G2_GORE
-	shader_t		*gore_shader;
-	CGoreSet		*gore_set;
-#endif
-
-	CRenderSurface(
-	int				initsurfaceNum,
-	surfaceInfo_v	&initrootSList,
-	shader_t		*initcust_shader,
-	int				initfogNum,
-	qboolean		initpersonalModel,
-	CBoneCache		*initboneCache,
-	int				initrenderfx,
-	skin_t			*initskin,
-	model_t			*initcurrentModel,
-	int				initlod,
-#ifdef _G2_GORE
-	boltInfo_v		&initboltList,
-	shader_t		*initgore_shader,
-	CGoreSet		*initgore_set):
-#else
-	boltInfo_v		&initboltList):
-#endif
-
-	surfaceNum(initsurfaceNum),
-	rootSList(initrootSList),
-	cust_shader(initcust_shader),
-	fogNum(initfogNum),
-	personalModel(initpersonalModel),
-	boneCache(initboneCache),
-	renderfx(initrenderfx),
-	skin(initskin),
-	currentModel(initcurrentModel),
-	lod(initlod),
-#ifdef _G2_GORE
-	boltList(initboltList),
-	gore_shader(initgore_shader),
-	gore_set(initgore_set)
-#else
-	boltList(initboltList)
-#endif
-	{}
-};
-
-#ifdef _G2_GORE
-#define MAX_RENDER_SURFACES (2048)
-static CRenderableSurface RSStorage[MAX_RENDER_SURFACES];
-static unsigned int NextRS=0;
-
-CRenderableSurface *AllocRS()
-{
-	CRenderableSurface *ret=&RSStorage[NextRS];
-	ret->Init();
-	NextRS++;
-	NextRS%=MAX_RENDER_SURFACES;
-	return ret;
-}
-#endif
-
 /*
 
 All bones should be an identity orientation to display the mesh exactly
@@ -836,25 +763,25 @@ static int R_GCullModel( trRefEntity_t *ent ) {
 		largestScale = 1;
 	}
 
-	/*
+	
 	// cull bounding sphere
-  	switch ( R_CullLocalPointAndRadius( vec3_origin,  ent->e.radius * largestScale) )
+//   	switch ( R_CullLocalPointAndRadius( vec3_origin,  ent->e.radius * largestScale) )
   	{
-  	case CULL_OUT:
-  		tr.pc.c_sphere_cull_md3_out++;
-  		return CULL_OUT;
+//   	case CULL_OUT:
+//   		tr.pc.c_sphere_cull_md3_out++;
+//   		return CULL_OUT;
 
-	case CULL_IN:
-		tr.pc.c_sphere_cull_md3_in++;
-		return CULL_IN;
+// 	case CULL_IN:
+// 		tr.pc.c_sphere_cull_md3_in++;
+// 		return CULL_IN;
 
-	case CULL_CLIP:
-		tr.pc.c_sphere_cull_md3_clip++;
-		return CULL_IN;
+// 	case CULL_CLIP:
+// 		tr.pc.c_sphere_cull_md3_clip++;
+// 		return CULL_IN;
  	}
-	return CULL_IN;
-	*/ //FIXME
-	return 0;
+// 	return CULL_IN;
+// 	*/ //FIXME
+// 	return 0;
 }
 
 
@@ -863,7 +790,7 @@ static int R_GCullModel( trRefEntity_t *ent ) {
 R_AComputeFogNum
 
 =================
-*/
+
 static int R_GComputeFogNum( trRefEntity_t *ent ) {
 
 	int				i, j;
@@ -890,6 +817,7 @@ static int R_GComputeFogNum( trRefEntity_t *ent ) {
 
 	return 0;
 }
+*/
 
 // work out lod for this entity.
 static int G2_ComputeLOD( trRefEntity_t *ent, const model_t *currentModel, int lodBias )
@@ -2407,216 +2335,6 @@ void G2_ProcessGeneratedSurfaceBolts(CGhoul2Info &ghoul2, mdxaBone_v &bonePtr, m
 #endif
 }
 
-void RenderSurfaces(CRenderSurface &RS) //also ended up just ripping right from SP.
-{
-#ifdef G2_PERFORMANCE_ANALYSIS
-	G2PerformanceTimer_RenderSurfaces.Start();
-#endif
-	int			i;
-	const shader_t	*shader = 0;
-	int			offFlags = 0;
-#ifdef _G2_GORE
-	bool		drawGore = true;
-#endif
-
-	assert(RS.currentModel);
-	assert(RS.currentModel->mdxm);
-	// back track and get the surfinfo struct for this surface
-	mdxmSurface_t			*surface = (mdxmSurface_t *)G2_FindSurface(RS.currentModel, RS.surfaceNum, RS.lod);
-	mdxmHierarchyOffsets_t	*surfIndexes = (mdxmHierarchyOffsets_t *)((byte *)RS.currentModel->mdxm + sizeof(mdxmHeader_t));
-	mdxmSurfHierarchy_t		*surfInfo = (mdxmSurfHierarchy_t *)((byte *)surfIndexes + surfIndexes->offsets[surface->thisSurfaceIndex]);
-
-	// see if we have an override surface in the surface list
-	const surfaceInfo_t	*surfOverride = G2_FindOverrideSurface(RS.surfaceNum, RS.rootSList);
-
-	// really, we should use the default flags for this surface unless it's been overriden
-	offFlags = surfInfo->flags;
-
-	// set the off flags if we have some
-	if (surfOverride)
-	{
-		offFlags = surfOverride->offFlags;
-	}
-
-	// if this surface is not off, add it to the shader render list
-	if (!offFlags)
-	{
- 		if ( RS.cust_shader )
-		{
-			shader = RS.cust_shader;
-		}
-		else if ( RS.skin )
-		{
-			int		j;
-
-			// match the surface name to something in the skin file
-			shader = tr.defaultShader;
-			for ( j = 0 ; j < RS.skin->numSurfaces ; j++ )
-			{
-				// the names have both been lowercased
-				if ( !strcmp( RS.skin->surfaces[j]->name, surfInfo->name ) )
-				{
-					shader = (shader_t*)RS.skin->surfaces[j]->shader;
-					break;
-				}
-			}
-		}
-		else
-		{
-			shader = TRM_GetShaderByHandle( surfInfo->shaderIndex );
-		}
-
-		//rww - catch surfaces with bad shaders
-		//assert(shader != tr.defaultShader);
-		//Alright, this is starting to annoy me because of the state of the assets. Disabling for now.
-		// we will add shadows even if the main object isn't visible in the view
-		// stencil shadows can't do personal models unless I polyhedron clip
-		//using z-fail now so can do personal models -rww
-		if ( /*!RS.personalModel
-			&& */1 //2
-//			&& RS.fogNum == 0
-			&& (RS.renderfx & RF_SHADOW_PLANE )
-			&& !(RS.renderfx & ( RF_NOSHADOW | RF_DEPTHHACK ) )
-			&& shader->sort == SS_OPAQUE )
-		{		// set the surface info to point at the where the transformed bone list is going to be for when the surface gets rendered out
-			CRenderableSurface *newSurf = new CRenderableSurface;
-			if (surface->numVerts >= SHADER_MAX_VERTEXES/2)
-			{ //we need numVerts*2 xyz slots free in tess to do shadow, if this surf is going to exceed that then let's try the lowest lod -rww
-				mdxmSurface_t *lowsurface = (mdxmSurface_t *)G2_FindSurface(RS.currentModel, RS.surfaceNum, RS.currentModel->numLods-1);
-				newSurf->surfaceData = lowsurface;
-			}
-			else
-			{
-				newSurf->surfaceData = surface;
-			}
-			newSurf->boneCache = RS.boneCache;
-			//R_AddDrawSurf( (surfaceType_t *)newSurf, tr.shadowShader, 0, qfalse );
-		}
-
-		// projection shadows work fine with personal models
-		if ( 1 //3
-//			&& RS.fogNum == 0
-			&& (RS.renderfx & RF_SHADOW_PLANE )
-			&& shader->sort == SS_OPAQUE )
-		{		// set the surface info to point at the where the transformed bone list is going to be for when the surface gets rendered out
-			CRenderableSurface *newSurf = new CRenderableSurface;
-			newSurf->surfaceData = surface;
-			newSurf->boneCache = RS.boneCache;
-			//R_AddDrawSurf( (surfaceType_t *)newSurf, tr.projectionShadowShader, 0, qfalse );
-		}
-
-		// don't add third_person objects if not viewing through a portal
-		if ( !RS.personalModel )
-		{		// set the surface info to point at the where the transformed bone list is going to be for when the surface gets rendered out
-			CRenderableSurface *newSurf = new CRenderableSurface;
-			newSurf->surfaceData = surface;
-			newSurf->boneCache = RS.boneCache;
-			//R_AddDrawSurf( (surfaceType_t *)newSurf, (shader_t *)shader, RS.fogNum, qfalse );
-
-#ifdef _G2_GORE
-			if (RS.gore_set && drawGore)
-			{
-				int curTime = G2API_GetTime(tr.refdef.time);
-				std::pair<std::multimap<int,SGoreSurface>::iterator,std::multimap<int,SGoreSurface>::iterator> range=
-					RS.gore_set->mGoreRecords.equal_range(RS.surfaceNum);
-				std::multimap<int,SGoreSurface>::iterator k,kcur;
-				CRenderableSurface *last=newSurf;
-				for (k=range.first;k!=range.second;)
-				{
-					kcur=k;
-					++k;
-					GoreTextureCoordinates *tex=FindGoreRecord((*kcur).second.mGoreTag);
-					if (!tex ||											 // it is gone, lets get rid of it
-						(kcur->second.mDeleteTime && curTime>=kcur->second.mDeleteTime)) // out of time
-					{
-						if (tex)
-						{
-							(*tex).~GoreTextureCoordinates();
-							//I don't know what's going on here, it should call the destructor for
-							//this when it erases the record but sometimes it doesn't. -rww
-						}
-
-						RS.gore_set->mGoreRecords.erase(kcur);
-					}
-					else if (tex->tex[RS.lod])
-					{
-						CRenderableSurface *newSurf2 = AllocRS();
-						*newSurf2=*newSurf;
-						newSurf2->goreChain=0;
-						newSurf2->alternateTex=tex->tex[RS.lod];
-						newSurf2->scale=1.0f;
-						newSurf2->fade=1.0f;
-						newSurf2->impactTime=1.0f;	// done with
-						int magicFactor42=500; // ms, impact time
-						if (curTime>(*kcur).second.mGoreGrowStartTime && curTime<(*kcur).second.mGoreGrowStartTime+magicFactor42)
-						{
-							newSurf2->impactTime=float(curTime-(*kcur).second.mGoreGrowStartTime)/float(magicFactor42);  // linear
-						}
-						if (curTime<(*kcur).second.mGoreGrowEndTime)
-						{
-							newSurf2->scale=1.0f/((curTime-(*kcur).second.mGoreGrowStartTime)*(*kcur).second.mGoreGrowFactor + (*kcur).second.mGoreGrowOffset);
-							if (newSurf2->scale<1.0f)
-							{
-								newSurf2->scale=1.0f;
-							}
-						}
-						shader_t *gshader;
-						if ((*kcur).second.shader)
-						{
- 							gshader=TRM_GetShaderByHandle((*kcur).second.shader);
-						}
-						else
-						{
-							gshader=TRM_GetShaderByHandle(goreShader);
-						}
-
-						// Set fade on surf.
-						//Only if we have a fade time set, and let us fade on rgb if we want -rww
-						if ((*kcur).second.mDeleteTime && (*kcur).second.mFadeTime)
-						{
-							if ((*kcur).second.mDeleteTime - curTime < (*kcur).second.mFadeTime)
-							{
-								newSurf2->fade=(float)((*kcur).second.mDeleteTime - curTime)/(*kcur).second.mFadeTime;
-								if ((*kcur).second.mFadeRGB)
-								{ //RGB fades are scaled from 2.0f to 3.0f (simply to differentiate)
-									newSurf2->fade += 2.0f;
-
-									if (newSurf2->fade < 2.01f)
-									{
-										newSurf2->fade = 2.01f;
-									}
-								}
-							}
-						}
-
-						last->goreChain=newSurf2;
-						last=newSurf2;
-						//R_AddDrawSurf( (surfaceType_t *)newSurf2,gshader, RS.fogNum, qfalse );
-					}
-				}
-			}
-#endif
-		}
-	}
-
-	// if we are turning off all descendants, then stop this recursion now
-	if (offFlags & G2SURFACEFLAG_NODESCENDANTS)
-	{
-		return;
-	}
-
-	// now recursively call for the children
-	for (i=0; i< surfInfo->numChildren; i++)
-	{
-		RS.surfaceNum = surfInfo->childIndexes[i];
-		RenderSurfaces(RS);
-	}
-
-#ifdef G2_PERFORMANCE_ANALYSIS
-	G2Time_RenderSurfaces += G2PerformanceTimer_RenderSurfaces.End();
-#endif
-}
-
 // Go through the model and deal with just the surfaces that are tagged as bolt on points - this is for the server side skeleton construction
 void ProcessModelBoltSurfaces(int surfaceNum, surfaceInfo_v &rootSList,
 					mdxaBone_v &bonePtr, model_t *currentModel, int lod, boltInfo_v &boltList)
@@ -3228,9 +2946,9 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent ) {
 #ifdef G2_PERFORMANCE_ANALYSIS
 	G2PerformanceTimer_R_AddGHOULSurfaces.Start();
 #endif
-	shader_t		*cust_shader = 0;
+// 	shader_t		*cust_shader = 0;
 #ifdef _G2_GORE
-	shader_t		*gore_shader = 0;
+// 	shader_t		*gore_shader = 0;
 #endif
 	int				fogNum = 0;
 	qboolean		personalModel;
@@ -3284,7 +3002,7 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent ) {
 	*/
 
 	// see if we are in a fog volume
-	fogNum = R_GComputeFogNum( ent );
+	//fogNum = R_GComputeFogNum( ent );
 
 	// order sort the ghoul 2 models so bolt ons get bolted to the right model
 	G2_Sort_Models(ghoul2, modelList, &modelCount);
@@ -3312,11 +3030,11 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent ) {
 			skin = NULL;
 			if (ent->e.customShader)
 			{
-				cust_shader = TRM_GetShaderByHandle(ent->e.customShader );
+// 				cust_shader = TRM_GetShaderByHandle(ent->e.customShader );
 			}
 			else
 			{
-				cust_shader = NULL;
+// 				cust_shader = NULL;
 				// figure out the custom skin thing
 				if (ghoul2[i].mCustomSkin)
 				{
@@ -3326,7 +3044,7 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent ) {
 				{
 					skin = TRM_GetSkinByHandle(ent->e.customSkin );
 				}
-				else if ( ghoul2[i].mSkin > 0 && ghoul2[i].mSkin < tr.numSkins )
+// 				else if ( ghoul2[i].mSkin > 0 && ghoul2[i].mSkin < tr.numSkins )
 				{
 					skin = TRM_GetSkinByHandle( ghoul2[i].mSkin );
 				}
@@ -3358,15 +3076,15 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent ) {
 				}
 			}
 
-			CRenderSurface RS(ghoul2[i].mSurfaceRoot, ghoul2[i].mSlist, cust_shader, fogNum, personalModel, ghoul2[i].mBoneCache, ent->e.renderfx, skin, (model_t *)ghoul2[i].currentModel, whichLod, ghoul2[i].mBltlist, gore_shader, gore);
+// 			CRenderSurface RS(ghoul2[i].mSurfaceRoot, ghoul2[i].mSlist, cust_shader, fogNum, personalModel, ghoul2[i].mBoneCache, ent->e.renderfx, skin, (model_t *)ghoul2[i].currentModel, whichLod, ghoul2[i].mBltlist, gore_shader, gore);
 #else
-			CRenderSurface RS(ghoul2[i].mSurfaceRoot, ghoul2[i].mSlist, cust_shader, fogNum, personalModel, ghoul2[i].mBoneCache, ent->e.renderfx, skin, (model_t *)ghoul2[i].currentModel, whichLod, ghoul2[i].mBltlist);
+// 			CRenderSurface RS(ghoul2[i].mSurfaceRoot, ghoul2[i].mSlist, cust_shader, fogNum, personalModel, ghoul2[i].mBoneCache, ent->e.renderfx, skin, (model_t *)ghoul2[i].currentModel, whichLod, ghoul2[i].mBltlist);
 #endif
-			if (!personalModel && (RS.renderfx & RF_SHADOW_PLANE) && !bInShadowRange(ent->e.origin))
+// 			if (!personalModel && (RS.renderfx & RF_SHADOW_PLANE) && !bInShadowRange(ent->e.origin))
 			{
-				RS.renderfx |= RF_NOSHADOW;
+// 				RS.renderfx |= RF_NOSHADOW;
 			}
-			RenderSurfaces(RS);
+			//RenderSurfaces(RS);
 		}
 	}
 	HackadelicOnClient=false;
@@ -3477,9 +3195,9 @@ static inline float G2_GetVertBoneWeightNotSlow( const mdxmVertex_t *pVert, cons
 
 //This is a slightly mangled version of the same function from the sof2sp base.
 //It provides a pretty significant performance increase over the existing one.
-void RB_SurfaceGhoul( CRenderableSurface *surf )
-{
-}
+// void RB_SurfaceGhoul( CRenderableSurface *surf )
+// {
+// }
 
 qboolean R_LoadMDXM( model_t *mod, void *buffer, const char *mod_name, qboolean &bAlreadyCached ) {
 	int					i,l, j;
@@ -3594,17 +3312,17 @@ qboolean R_LoadMDXM( model_t *mod, void *buffer, const char *mod_name, qboolean 
 			LL(surfInfo->childIndexes[j]);
 		}
 
-		shader_t	*sh;
+// 		shader_t	*sh;
 		// get the shader name
 		//sh = R_FindShader( surfInfo->shader, lightmapsNone, stylesDefault, qtrue );
 		// insert it in the surface list
-		if ( sh->defaultShader )
+// 		if ( sh->defaultShader )
 		{
 			surfInfo->shaderIndex = 0;
 		}
-		else
+// 		else
 		{
-			surfInfo->shaderIndex = sh->index;
+// 			surfInfo->shaderIndex = sh->index;
 		}
 
 		//RE_RegisterModels_StoreShaderRequest(mod_name, &surfInfo->shader[0], &surfInfo->shaderIndex);
@@ -3652,7 +3370,7 @@ qboolean R_LoadMDXM( model_t *mod, void *buffer, const char *mod_name, qboolean 
 			}
 
 			// change to surface identifier
-			surf->ident = SF_MDX;
+			//surf->ident = SF_MDX;
 			// register the shaders
 #ifdef Q3_BIG_ENDIAN
 			// swap the LOD offset

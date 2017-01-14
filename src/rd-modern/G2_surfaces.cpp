@@ -208,29 +208,7 @@ qboolean G2_SetSurfaceOnOff (CGhoul2Info *ghlInfo, surfaceInfo_v &slist, const c
 
 void G2_SetSurfaceOnOffFromSkin (CGhoul2Info *ghlInfo, qhandle_t renderSkin)
 {
-	int j;
-	const skin_t *skin = TRM_GetSkinByHandle( renderSkin );
 
-	ghlInfo->mSlist.clear();	//remove any overrides we had before.
-	ghlInfo->mMeshFrameNum = 0;
-
-	for ( j = 0 ; j < skin->numSurfaces ; j++ )
-	{
-		// the names have both been lowercased
-		//FIXME: why is this using the shader name and not the surface name?
-		if ( !strcmp( ((shader_t *)skin->surfaces[j]->shader)->name, "*off") ) {
-			G2_SetSurfaceOnOff(ghlInfo, ghlInfo->mSlist, skin->surfaces[j]->name, G2SURFACEFLAG_OFF);
-		}
-		else
-		{
-			int	flags;
-			int surfaceNum = G2_IsSurfaceLegal((void *)ghlInfo->currentModel, skin->surfaces[j]->name, &flags);
-			if ( (surfaceNum != -1) && (!(flags&G2SURFACEFLAG_OFF)) )	//only turn on if it's not an "_off" surface
-			{
-				G2_SetSurfaceOnOff(ghlInfo, ghlInfo->mSlist, skin->surfaces[j]->name, 0);
-			}
-		}
-	}
 }
 
 // return a named surfaces off flags - should tell you if this surface is on or off.

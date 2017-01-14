@@ -29,8 +29,8 @@ void Phys_Object_Set_Rotation(phys_object_t *, vec3_t angles);
 phys_properties_t * Phys_Object_Get_Properties(phys_object_t *);
 void Phys_Object_Set_Properties(phys_object_t *);
 
-void Phys_Object_Force(phys_object_t *, vec3_t lin, vec3_t ang);
-void Phys_Object_Impulse(phys_object_t *, vec3_t lin, vec3_t ang);
+void Phys_Object_Force(phys_object_t *, float * lin, float * ang);
+void Phys_Object_Impulse(phys_object_t *, float * lin, float * ang);
 
 void Phys_Obj_Set_Linear_Velocity(phys_object_t *, vec3_t lin);
 void Phys_Obj_Get_Linear_Velocity(phys_object_t *, vec3_t lin);

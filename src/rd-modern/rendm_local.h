@@ -14,7 +14,7 @@ namespace rendm {
 	void end_frame();
 	void draw (refdef_t const * rf);
 	
-	void add_sprite(qm::mat4 const & m, qhandle_t sh);
+	void add_sprite(qm::mat3 const & vm, qm::mat3 const & um, qhandle_t sh);
 	
 	namespace model {
 		
@@ -35,7 +35,20 @@ namespace rendm {
 		bool init();
 		void term();
 		
-		void uniform_mm(qm::mat4 const &);
+		qhandle_t reg(char const *);
+		GLuint get(qhandle_t);
+		
+		void uniform_mm(qm::mat3 const &);
+		void uniform_um(qm::mat3 const &);
+		
+	}
+	
+	namespace texture {
+		
+		bool init();
+		void term();
+		
+		GLuint load(char const *);
 		
 	}
 }

@@ -318,6 +318,18 @@ objModel_t * CM_LoadObj(char const * name) {
 	
 	objModel_t * mod = new objModel_t;
 	
+	VectorSet(mod->mins, verts[0], verts[1], verts[2]);
+	VectorSet(mod->maxs, verts[0], verts[1], verts[2]);
+	
+	for (int i = 3; i < verts.size(); i += 3) {
+		if (verts[i] < mod->mins[0]) mod->mins[0] = verts[i];
+		else if (verts[i] > mod->maxs[0]) mod->maxs[0] = verts[i];
+		if (verts[i+1] < mod->mins[1]) mod->mins[1] = verts[i+1];
+		else if (verts[i+1] > mod->maxs[1]) mod->maxs[1] = verts[i+1];
+		if (verts[i+2] < mod->mins[2]) mod->mins[2] = verts[i+2];
+		else if (verts[i+2] > mod->maxs[2]) mod->maxs[2] = verts[i+2];
+	}
+	
 	mod->numVerts = verts.size();
 	mod->verts = new float [mod->numVerts];
 	memcpy(mod->verts, verts.data(), mod->numVerts * sizeof(float));

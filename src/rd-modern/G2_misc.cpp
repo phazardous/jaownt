@@ -189,7 +189,7 @@ public:
 	int					entNum;
 	int					modelIndex;
 	skin_t				*skin;
-    shader_t			*cust_shader;
+    //shader_t			*cust_shader;
 	size_t				*TransformedVertsArray;
 	int					traceFlags;
 	bool				hitOne;
@@ -218,7 +218,7 @@ public:
 	int					initentNum,
 	int					initmodelIndex,
 	skin_t				*initskin,
-	shader_t			*initcust_shader,
+	//shader_t			*initcust_shader,
 	size_t				*initTransformedVertsArray,
 	int					inittraceFlags,
 #ifdef _G2_GORE
@@ -241,7 +241,7 @@ public:
 	entNum(initentNum),
 	modelIndex(initmodelIndex),
 	skin(initskin),
-	cust_shader(initcust_shader),
+	//cust_shader(initcust_shader),
 	TransformedVertsArray(initTransformedVertsArray),
 	traceFlags(inittraceFlags),
 #ifdef _G2_GORE
@@ -1495,7 +1495,7 @@ void G2_TraceModels(CGhoul2Info_v &ghoul2, vec3_t rayStart, vec3_t rayEnd, Colli
 {
 	int				i, lod;
 	skin_t			*skin;
-	shader_t		*cust_shader;
+	//shader_t		*cust_shader;
 	qboolean		firstModelOnly = qfalse;
 
 	if ( cg_g2MarksAllModels == NULL )
@@ -1535,19 +1535,19 @@ void G2_TraceModels(CGhoul2Info_v &ghoul2, vec3_t rayStart, vec3_t rayEnd, Colli
 
 		if (ghoul2[i].mCustomShader && ghoul2[i].mCustomShader != -20) //rww - -20 is a server instance (hack)
 		{
-			cust_shader = (shader_t *)TRM_GetShaderByHandle( ghoul2[i].mCustomShader );
+			//cust_shader = (shader_t *)TRM_GetShaderByHandle( ghoul2[i].mCustomShader );
 		}
 		else
 		{
-			cust_shader = NULL;
+			//cust_shader = NULL;
 		}
 
 		// figure out the custom skin thing
-		if ( ghoul2[i].mSkin > 0 && ghoul2[i].mSkin < tr.numSkins )
+// 		if ( ghoul2[i].mSkin > 0 && ghoul2[i].mSkin < tr.numSkins )
 		{
 			skin = TRM_GetSkinByHandle( ghoul2[i].mSkin );
 		}
-		else
+// 		else
 		{
 			skin = NULL;
 		}
@@ -1565,15 +1565,15 @@ void G2_TraceModels(CGhoul2Info_v &ghoul2, vec3_t rayStart, vec3_t rayEnd, Colli
 		G2_FindOverrideSurface(-1, ghoul2[i].mSlist);
 
 #ifdef _G2_GORE
-		CTraceSurface TS(ghoul2[i].mSurfaceRoot, ghoul2[i].mSlist,  (model_t *)ghoul2[i].currentModel, lod, rayStart, rayEnd, collRecMap, entNum, i, skin, cust_shader, ghoul2[i].mTransformedVertsArray, eG2TraceType, fRadius, ssize,	tsize, theta, shader, &ghoul2[i], gore);
+		//CTraceSurface TS(ghoul2[i].mSurfaceRoot, ghoul2[i].mSlist,  (model_t *)ghoul2[i].currentModel, lod, rayStart, rayEnd, collRecMap, entNum, i, skin, cust_shader, ghoul2[i].mTransformedVertsArray, eG2TraceType, fRadius, ssize,	tsize, theta, shader, &ghoul2[i], gore);
 #else
-		CTraceSurface TS(ghoul2[i].mSurfaceRoot, ghoul2[i].mSlist,  (model_t *)ghoul2[i].currentModel, lod, rayStart, rayEnd, collRecMap, entNum, i, skin, cust_shader, ghoul2[i].mTransformedVertsArray, eG2TraceType, fRadius);
+		//CTraceSurface TS(ghoul2[i].mSurfaceRoot, ghoul2[i].mSlist,  (model_t *)ghoul2[i].currentModel, lod, rayStart, rayEnd, collRecMap, entNum, i, skin, cust_shader, ghoul2[i].mTransformedVertsArray, eG2TraceType, fRadius);
 #endif
 		// start the surface recursion loop
-		G2_TraceSurfaces(TS);
+		//G2_TraceSurfaces(TS);
 
 		// if we've hit one surface on one model, don't bother doing the rest
-		if (TS.hitOne)
+		//if (TS.hitOne)
 		{
 			break;
 		}

@@ -431,6 +431,8 @@ phys_object_t * Phys_Object_Create_Box(phys_world_t * w, vec3_t mins, vec3_t max
 	phys_object_t * obj = new phys_object_t {w->world};
 	
 	obj->properties = *properties;
+	VectorCopy(mins, obj->properties.mins);
+	VectorCopy(maxs, obj->properties.maxs);
 	
 	btConvexHullShape * chs = new btConvexHullShape;
 	chs->addPoint({mins[0], mins[1], mins[2]}, false);
@@ -466,6 +468,9 @@ phys_object_t * Phys_Object_Create_Capsule(phys_world_t * w, float cylinder_heig
 	phys_object_t * obj = new phys_object_t {w->world};
 	
 	obj->properties = *properties;
+	
+	VectorSet(obj->properties.mins, -radius, -radius, - (cylinder_height / 2 + radius));
+	VectorSet(obj->properties.mins, radius, radius, (cylinder_height / 2 + radius));
 	
 	if (v_center_offs) {
 		btCompoundShape * cmp = new btCompoundShape;
@@ -510,6 +515,9 @@ phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * p
 
 	objModel_t * mod = CM_LoadObj(path);
 	if (!mod) return nullptr;
+	
+	VectorCopy(mod->mins, no->properties.mins);
+	VectorCopy(mod->maxs, no->properties.maxs);
 	
 	if (mod->numSurfaces > 1) {
 		
@@ -625,8 +633,6 @@ phys_object_t * Phys_Object_Create_From_Obj(phys_world_t * world, char const * p
 		no->properties.mass = mass;
 	}
 	
-	Com_Printf("%f\n", no->properties.mass);
-	
 	no->motion_state = new btDefaultMotionState { btTransform { 
 		btQuaternion { initial_transform->angles[0] * d2r_mult, initial_transform->angles[2] * d2r_mult, initial_transform->angles[1] * d2r_mult }, 
 		btVector3 {initial_transform->origin[0], initial_transform->origin[1], initial_transform->origin[2]} } };
@@ -727,6 +733,7 @@ void Phys_Object_Set_Origin(phys_object_t * obj, vec3_t origin) {
 		obj->motion_state->setWorldTransform(trans);
 	} else {
 		obj->body->getWorldTransform().setOrigin( { origin[0], origin[1], origin[2] } );
+		obj->body->activate(true);
 	}
 }
 
@@ -761,16 +768,21 @@ void Phys_Object_Set_Properties(phys_object_t * obj) {
 	obj->set_properties();
 }
 
-void Phys_Object_Force(phys_object_t *, vec3_t lin, vec3_t ang) {
-	
+void Phys_Object_Force(phys_object_t * obj, float * lin, float * ang) {
+	if (lin) obj->body->applyCentralForce(q32bt_vec3(lin));
+	if (ang) obj->body->applyTorque(q32bt_vec3(ang));
+	obj->body->activate(true);
 }
 
-void Phys_Object_Impulse(phys_object_t *, vec3_t lin, vec3_t ang) {
-	
+void Phys_Object_Impulse(phys_object_t * obj, float * lin, float * ang) {
+	if (lin) obj->body->applyCentralImpulse(q32bt_vec3(lin));
+	if (ang) obj->body->applyTorqueImpulse(q32bt_vec3(ang));
+	obj->body->activate(true);
 }
 
 void Phys_Obj_Set_Linear_Velocity(phys_object_t * obj, vec3_t lin) {
 	obj->body->setLinearVelocity(q32bt_vec3(lin));
+	obj->body->activate(true);
 }
 
 void Phys_Obj_Get_Linear_Velocity(phys_object_t * obj, vec3_t lin) {
@@ -779,6 +791,7 @@ void Phys_Obj_Get_Linear_Velocity(phys_object_t * obj, vec3_t lin) {
 
 void Phys_Obj_Set_Angular_Velocity(phys_object_t * obj, vec3_t ang) {
 	obj->body->setAngularVelocity(q32bt_vec3(ang));
+	obj->body->activate(true);
 }
 
 void Phys_Obj_Get_Angular_Velocity(phys_object_t * obj, vec3_t ang) {

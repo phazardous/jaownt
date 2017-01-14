@@ -2482,6 +2482,10 @@ typedef struct phys_properties_s {
 	qboolean kinematic;
 	int contents;
 	void * token; // used by implementers to quickly identify who owns a phys_object_t
+	
+	// these are set by phys, not the implementors
+	vec3_t mins;
+	vec3_t maxs;
 } phys_properties_t;
 
 typedef struct phys_transform_s {

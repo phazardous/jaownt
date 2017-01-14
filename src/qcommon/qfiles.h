@@ -203,6 +203,7 @@ typedef struct objModel_s {
 	float *				UVs;
 	float *				normals;
 	objSurface_t * 		surfaces;
+	vec3_t 				mins, maxs;
 } objModel_t;
 
 /*
