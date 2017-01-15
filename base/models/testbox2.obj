@@ -15,7 +15,7 @@ vn 1.0000 0.0000 0.0000
 vn 0.0000 0.0000 1.0000
 vn 0.0000 -1.0000 0.0000
 vn 0.0000 1.0000 0.0000
-usemtl textures/colors/c_red_model
+usemtl textures/colors/c_green_model
 s off
 f 2//1 3//1 1//1
 f 7//2 6//2 5//2
