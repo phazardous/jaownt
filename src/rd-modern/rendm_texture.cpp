@@ -6,13 +6,22 @@
 
 std::unordered_map<std::string, GLuint> open_textures;
 
+static GLuint whiteimage;
+
 bool rendm::texture::init() {
 	R_ImageLoader_Init();
+	
+	glCreateTextures(GL_TEXTURE_2D, 1, &whiteimage);
+	glTextureParameteri(whiteimage, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTextureParameteri(whiteimage, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTextureStorage2D(whiteimage, 1, GL_RGBA8, 1, 1);
+	glTextureSubImage2D(whiteimage, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, "\xFF\xFF\xFF\xFF");
+	
 	return true;
 }
 
 void rendm::texture::term() {
-	//if (open_textures.size()) glDeleteTextures(open_textures.size(), open_textures.data());
+	glDeleteTextures(1, &whiteimage);
 	for (auto & i : open_textures) {
 		glDeleteTextures(1, &i.second);
 	}
@@ -20,6 +29,13 @@ void rendm::texture::term() {
 }
 
 GLuint rendm::texture::load(char const * name) {
+	
+	if (!strcmp(name, "*white")) {
+		return whiteimage;
+	}
+	if (!strcmp(name, "$whiteimage")) {
+		return whiteimage;
+	}
 	
 	char sname [MAX_QPATH];
 	COM_StripExtension(name, sname, MAX_QPATH);
@@ -31,7 +47,7 @@ GLuint rendm::texture::load(char const * name) {
 	int width, height;
 	
 	R_LoadImage( sname, &idat, &width, &height );
-	if (!idat) return -1;
+	if (!idat) return 0;
 	
 	GLuint tex;
 	glCreateTextures(GL_TEXTURE_2D, 1, &tex);

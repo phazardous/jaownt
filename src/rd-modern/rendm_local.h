@@ -32,12 +32,37 @@ namespace rendm {
 	
 	namespace shader {
 		
+		struct stage {
+			
+			enum struct gen_type {
+				none,
+				rgb_const,
+			};
+			
+			GLuint diffuse = 0; // GL Texture Handle
+			GLenum blend_src = GL_SRC_ALPHA, blend_dst = GL_ONE_MINUS_SRC_ALPHA;
+			
+			gen_type gen = gen_type::none;
+			float gen_r = 1;
+			float gen_g = 1;
+			float gen_b = 1;
+			float gen_a = 1;
+		};
+
+		struct construct {
+			std::vector<stage> stages;
+		};
+		
 		bool init();
 		void term();
 		
 		qhandle_t reg(char const *);
-		GLuint get(qhandle_t);
+
+		construct const * get(qhandle_t);
+		void setup(construct const *);
+		void setup(stage const *);
 		
+		void uniform_global_color(float r, float g, float b, float a);
 		void uniform_mm(qm::mat3 const &);
 		void uniform_um(qm::mat3 const &);
 		

@@ -19,7 +19,6 @@ bool rendm::init() {
 	glScissor(0, 0, glConfig.vidWidth, glConfig.vidHeight);
 	glClearColor(1.0, 0.0, 0.0, 1.0);
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 	
 	return true;
@@ -44,10 +43,13 @@ void rendm::draw (refdef_t const * rf) {
 }
 
 void rendm::add_sprite(qm::mat3 const & vm, qm::mat3 const & um, qhandle_t sh) {
-	GLuint tex = shader::get(sh);
-	glBindTextureUnit(0, tex);
+	shader::construct const * c = shader::get(sh);
+	if (!c) return;
 	shader::uniform_mm(vm);
 	shader::uniform_um(um);
 	glBindVertexArray(rendm::model::unitquad);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	for (shader::stage const & stg : c->stages) {
+		shader::setup(&stg);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	}
 }

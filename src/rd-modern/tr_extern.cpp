@@ -192,7 +192,8 @@ void TRM_RenderScene( const refdef_t *fd  ) {
 }
 
 void TRM_SetColor( const float *rgba  ) {
-	//TODO
+	if (rgba) rendm::shader::uniform_global_color(rgba[0], rgba[1], rgba[2], rgba[3]);
+	else rendm::shader::uniform_global_color(1, 1, 1, 1);
 }
 
 void TRM_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader  ) {
@@ -664,7 +665,7 @@ void Z_MorphMallocTag( void *pvBuffer, memtag_t eDesiredTag ) {
 }
 
 qboolean ShaderHashTableExists() {
-	return qfalse;
+	return qtrue;
 }
 
 skin_t * TRM_GetSkinByHandle(qhandle_t) {
