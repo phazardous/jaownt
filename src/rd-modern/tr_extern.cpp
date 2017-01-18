@@ -192,8 +192,8 @@ void TRM_RenderScene( const refdef_t *fd  ) {
 }
 
 void TRM_SetColor( const float *rgba  ) {
-	if (rgba) rendm::shader::uniform_global_color(rgba[0], rgba[1], rgba[2], rgba[3]);
-	else rendm::shader::uniform_global_color(1, 1, 1, 1);
+	if (rgba) rendm::globals.color_mod = {rgba[0], rgba[1], rgba[2], rgba[3]};
+	else rendm::globals.color_mod = {1, 1, 1, 1};
 }
 
 void TRM_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader  ) {
@@ -204,9 +204,9 @@ void TRM_DrawStretchPic( float x, float y, float w, float h, float s1, float t1,
 	
 	assert(w != 0 && h != 0);
 	
-	qm::mat3 m = qm::mat3::scale(w, h);
-	m *= qm::mat3::translate(x, y);
-	qm::mat3 p = qm::mat3::ortho(0, 480, 0, 640);
+	qm::mat4 m = qm::mat4::scale(w, h, 1);
+	m *= qm::mat4::translate(x, y, 0);
+	qm::mat4 p = qm::mat4::ortho(0, 480, 0, 640, 0, 1);
 	
 	qm::mat3 uv = qm::mat3::scale(s2 - s1, t2 - t1);
 	uv *= qm::mat3::translate(s1, t1);

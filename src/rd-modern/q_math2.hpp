@@ -9,6 +9,18 @@ template <typename T> struct t_mat3;
 template <typename T> struct t_vec4;
 template <typename T> struct t_mat4;
 
+template <typename T> constexpr inline T t_pi(T mult = 1) {
+	return 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067982148086513282306647093844609550582231725359408128481 * mult;
+}
+
+template <typename T> inline T t_deg2rad(T deg) {
+	return deg * (t_pi<T>() / 180);
+}
+
+template <typename T> inline T t_rad2deg(T rad) {
+	return rad * (180 / t_pi<T>());
+}
+
 template <typename T> inline T t_dot3 (float const * a, float const * b) {
 	return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
 }
@@ -37,8 +49,19 @@ template <typename T> inline t_vec4<T> t_mat4_mult_vec4 (t_mat4<T> const & m, t_
 }
 
 template <typename T>
+struct t_vec2 {
+	float values [2] = { 0, 0 };
+	t_vec2() = default;
+	t_vec2(T x, T y) : values {x, y} {}
+	
+	operator float const * () const { return &values[0]; }
+	float & operator [] (size_t i) { return values[i]; }
+	float const & operator [] (size_t i) const { return values[i]; }
+};
+
+template <typename T>
 struct t_vec3 {
-	float values [3] = { 0, 0, 1 };
+	float values [3] = { 0, 0, 0 };
 	t_vec3() = default;
 	t_vec3(T x, T y, T z = 1) : values {x, y, z} {}
 	
@@ -80,6 +103,15 @@ struct t_mat3 {
 		t_mat3<T> m;
 		m[2][0] = x;
 		m[2][1] = y;
+		return m;
+	}
+	
+	static t_mat3<T> rotate(T v) {
+		t_mat3<T> m;
+		m[0][0] = cos(v);
+		m[0][1] = -sin(v);
+		m[1][0] = sin(v);
+		m[1][1] = cos(v);
 		return m;
 	}
 	
@@ -208,6 +240,7 @@ struct t_mat4 {
 	}
 };
 
+typedef t_vec2<default_precision> vec2;
 typedef t_vec3<default_precision> vec3;
 typedef t_mat3<default_precision> mat3;
 typedef t_vec4<default_precision> vec4;

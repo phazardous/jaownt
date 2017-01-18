@@ -12,8 +12,6 @@ bool rendm::texture::init() {
 	R_ImageLoader_Init();
 	
 	glCreateTextures(GL_TEXTURE_2D, 1, &whiteimage);
-	glTextureParameteri(whiteimage, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTextureParameteri(whiteimage, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTextureStorage2D(whiteimage, 1, GL_RGBA8, 1, 1);
 	glTextureSubImage2D(whiteimage, 0, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, "\xFF\xFF\xFF\xFF");
 	
@@ -51,8 +49,6 @@ GLuint rendm::texture::load(char const * name) {
 	
 	GLuint tex;
 	glCreateTextures(GL_TEXTURE_2D, 1, &tex);
-	glTextureParameteri(tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTextureParameteri(tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTextureStorage2D(tex, 1, GL_RGBA8, width, height);
 	glTextureSubImage2D(tex, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, idat);
 	

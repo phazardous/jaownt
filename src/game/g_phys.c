@@ -17,6 +17,7 @@ static void g_touch_cb_do(phys_world_t * w, phys_collision_t * col, gentity_t * 
 	
 	if (col->normal[2] < -0.707 && !entThis->client->pers.cmd.upmove) { // 45 degrees is maximum walkable surface angle -- TODO: cvar
 		
+		/*
 		// on floor, move velocity closer to floor's
 		if (entOther == &g_entities[ENTITYNUM_WORLD]) {
 			VectorClear(entThis->phys_post_target_velocity);
@@ -24,6 +25,7 @@ static void g_touch_cb_do(phys_world_t * w, phys_collision_t * col, gentity_t * 
 			trap->Phys_Obj_Get_Linear_Velocity(entOther->phys, entThis->phys_post_target_velocity);
 		}
 		entThis->phys_post_do_vellerp = qtrue;
+		*/
 		
 		entThis->playerState->eFlags |= EF_ON_PHYS;
 		entThis->playerState->groundEntityNum = entOther->s.number;
@@ -261,6 +263,8 @@ void G_Phys_AddBMover(gentity_t * mover) {
 
 void G_Phys_AddClientCapsule(gentity_t * ent) {
 	if (ent->phys) trap->Phys_World_Remove_Object(gworld, ent->phys);
+	
+	trap->Print("%s", ent->classname);
 	
 	props.mass = -1;
 	props.friction = g_phys_clientfriction.value;

@@ -409,10 +409,12 @@ struct gentity_s {
 	char *		sharpCmd[NUM_SHARPCMDS];
 	char *		sharpTags;
 	
-	// Sharp
+	// Phys
 	phys_object_t * phys;
+	/*
 	qboolean phys_post_do_vellerp;
 	vec3_t phys_post_target_velocity;
+	*/
 };
 
 #define DAMAGEREDIRECT_HEAD		1

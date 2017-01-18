@@ -1221,14 +1221,14 @@ static void CG_InitG2SaberData(int saberNum, clientInfo_t *ci)
 
 					if (tagBolt == -1)
 					{
-						assert(0);
+						//assert(0); FIXME
 					}
 					break;
 				}
 
 				if (tagBolt == -1)
 				{
-					assert(0);
+					//assert(0); FIXME
 					break;
 				}
 			}
