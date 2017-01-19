@@ -112,7 +112,7 @@ void TRM_BeginRegistration( glconfig_t *config  ) {
 }
 
 qhandle_t TRM_RegisterModel( const char *name  ) {
-	return 0; //TODO
+	return rendm::model::reg(name);
 }
 
 qhandle_t TRM_RegisterServerModel( const char *name  ) {
@@ -128,11 +128,11 @@ qhandle_t TRM_RegisterServerSkin( const char *name  ) {
 }
 
 qhandle_t TRM_RegisterShader( const char *name  ) {
-	return rendm::shader::reg(name);
+	return rendm::shader::reg(name, true);
 }
 
 qhandle_t TRM_RegisterShaderNoMip( const char *name  ) {
-	return rendm::shader::reg(name);
+	return rendm::shader::reg(name, true);
 }
 
 const char * TRM_ShaderNameFromIndex( int index  ) {
@@ -196,22 +196,24 @@ void TRM_SetColor( const float *rgba  ) {
 	else rendm::globals.color_mod = {1, 1, 1, 1};
 }
 
+static const qm::mat4 projection_2d = qm::mat4::ortho(0, 480, 0, 640, 0, 1);
+
 void TRM_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader  ) {
 	
 	if (w == 0) {
 		w = h * (640.0f / 480.0f);
 	}
 	
-	assert(w != 0 && h != 0);
+	//assert(w != 0 && h != 0);
 	
 	qm::mat4 m = qm::mat4::scale(w, h, 1);
 	m *= qm::mat4::translate(x, y, 0);
-	qm::mat4 p = qm::mat4::ortho(0, 480, 0, 640, 0, 1);
+	
 	
 	qm::mat3 uv = qm::mat3::scale(s2 - s1, t2 - t1);
 	uv *= qm::mat3::translate(s1, t1);
 	
-	rendm::add_sprite( p * m, uv, hShader );
+	rendm::add_sprite( projection_2d * m, uv, hShader );
 }
 
 void TRM_DrawRotatePic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, float a1, qhandle_t hShader  ) {

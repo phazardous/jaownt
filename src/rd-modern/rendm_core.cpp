@@ -3,7 +3,6 @@
 rendm::globals_t rendm:: globals = {};
 
 bool rendm::init() {
-
 	if (!model::init()) {
 		srcprintf_error("could not initialize models");
 		return false;

@@ -121,3 +121,75 @@ void rendm::model::term() {
 	rendm_models.clear();
 	handle_incrementor = 0;
 }
+
+qhandle_t rendm::model::reg(char const * path) {
+	
+	fileHandle_t f;
+	char * buf;
+	
+	long len = ri->FS_FOpenFileRead(path, &f, qfalse);
+	if (len <= 0) return 0;
+	buf = new char [len];
+	ri->FS_Read(buf, len, f);
+	ri->FS_FCloseFile(f);
+	int ident = *reinterpret_cast<int *>(buf);
+	
+	qhandle_t h = nexthand;
+	
+	switch (ident) {
+		case MDXA_IDENT:
+			Com_Printf("Ghoul2 Animation: %s\n", path);
+			break;
+		case MDXM_IDENT:
+			Com_Printf("Ghoul2 Model: %s\n", path);
+			break;
+		case MD3_IDENT:
+			Com_Printf("MD3 Model: %s\n", path);
+			break;
+	}
+	
+	delete [] buf;
+	
+	return h;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

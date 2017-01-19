@@ -35,6 +35,8 @@ namespace rendm {
 		
 		bool init();
 		void term();
+		
+		qhandle_t reg (char const *);
 	}
 	
 	namespace shader {
@@ -114,7 +116,7 @@ namespace rendm {
 			
 			GLuint diffuse = 0; // GL Texture Handle
 			bool clamp = false;
-			GLenum blend_src = GL_SRC_ALPHA, blend_dst = GL_ONE_MINUS_SRC_ALPHA;
+			GLenum blend_src = GL_ONE, blend_dst = GL_ZERO;
 			
 			gen_type gen_rgb = gen_type::none;
 			gen_type gen_alpha = gen_type::none;
@@ -148,7 +150,7 @@ namespace rendm {
 		bool init();
 		void term();
 		
-		qhandle_t reg(char const *);
+		qhandle_t reg(char const *, bool trans = false);
 
 		construct const * get(qhandle_t);
 		void setup(construct const *);

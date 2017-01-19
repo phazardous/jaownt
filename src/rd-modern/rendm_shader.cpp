@@ -50,9 +50,9 @@ static GLuint tex_sampler;
 
 static std::unordered_map<std::string, qhandle_t> shader_map;
 static std::unordered_map<qhandle_t, rendm::shader::construct *> shader_construct_map;
-static qhandle_t handle_incrementor = 0;
-
 static std::unordered_map<std::string, std::string> shader_lookup_table;
+
+static qhandle_t handle_incrementor = 0;
 
 static bool preparse_shaders() {
 	
@@ -488,6 +488,12 @@ static rendm::shader::construct * parse_shader(char const * name, char const * d
 				ri->Printf(PRINT_WARNING, "WARNING: shader stage for (\"%s\") failed to parse.\n", name);
 				goto fail;
 			}
+			if (stg.gen_alpha == rendm::shader::stage::gen_type::none && stg.gen_rgb == rendm::shader::stage::gen_type::vertex) {
+				stg.gen_alpha = rendm::shader::stage::gen_type::vertex;
+			}
+			else if (stg.gen_alpha == rendm::shader::stage::gen_type::none && stg.gen_rgb == rendm::shader::stage::gen_type::constant) {
+				stg.gen_alpha = rendm::shader::stage::gen_type::constant;
+			}
 			c->stages.push_back(stg);
 		}
 		
@@ -576,6 +582,9 @@ bool rendm::shader::init() {
 	glCreateSamplers(1, &tex_sampler);
 	glBindSampler(0, tex_sampler);
 	
+	glSamplerParameteri(tex_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glSamplerParameteri(tex_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	
 	return true;
 }
 
@@ -585,9 +594,16 @@ void rendm::shader::term() {
 	glDeleteProgram(program);
 	glDeleteSamplers(1, &tex_sampler);
 	handle_incrementor = 0;
+	
+	shader_map.clear();
+	shader_lookup_table.clear();
+	for (auto const & i : shader_construct_map) {
+		delete i.second;
+	}
+	shader_construct_map.clear();	
 }
 
-qhandle_t rendm::shader::reg(char const * path) {
+qhandle_t rendm::shader::reg(char const * path, bool trans) {
 	auto f = shader_map.find(path);
 	if (f != shader_map.end()) return f->second;
 	
@@ -616,6 +632,10 @@ qhandle_t rendm::shader::reg(char const * path) {
 		stage stg;
 		stg.diffuse = tex;
 		nc->stages.push_back(stg);
+		if (trans) {
+			nc->stages[0].blend_src = GL_SRC_ALPHA;
+			nc->stages[0].blend_dst = GL_ONE_MINUS_SRC_ALPHA;
+		}
 		shader_map[path] = nh;
 		shader_construct_map[nh] =  nc;
 		return nh;
@@ -665,9 +685,9 @@ void rendm::shader::setup(stage const * stg, qm::mat4 const & vert_mat, qm::mat3
 	} else if (stg->gen_alpha == stage::gen_type::vertex) {
 		uc[3] = globals.color_mod[3];
 	} else {
-		uc[3] = stg->color[3] * globals.color_mod[3];
+		uc[3] = stg->color[3];
 	}
-	
+
 	uniform_global_color(uc);
 
 	glUniformMatrix4fv(u_mm_loc, 1, GL_FALSE, vert_mat);
