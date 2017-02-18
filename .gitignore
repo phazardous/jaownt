@@ -15,5 +15,5 @@ waf*/
 build/
 install/
 
-
-
+### Crapfiles ###
+Thumbs.DB
