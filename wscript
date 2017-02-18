@@ -270,24 +270,24 @@ def build(bld):
 		
 	### RD-MODERN ###
 	
-		rdmodern_files = bld.path.ant_glob('src/rd-modern/*.cpp')
-		rdmodern_files += bld.path.ant_glob('src/rd-common/*.cpp')
-		rdmodern_files += bld.path.ant_glob('src/ghoul2/*.cpp')
-		rdmodern_files += bld.path.ant_glob('src/qcommon/matcomp.cpp')
-		rdmodern_files += bld.path.ant_glob('src/qcommon/q_math.cpp')
-		rdmodern_files += bld.path.ant_glob('src/qcommon/q_shared.cpp')
-		rdmodern_files += bld.path.ant_glob('src/rd-modern/glad.c')
-		
-		rdmodern = bld (
-			features = 'cxx cxxshlib c cshlib',
-			target = 'rd-modern',
-			includes = ['src', 'src/rd-modern'],
-			source = rdmodern_files,
-			uselib = ['JPEG', 'PNG', 'GL', 'PTHREAD'],
-			install_path = os.path.join(top, 'install')
-		)
-		
-		rdmodern.env.cxxshlib_PATTERN = '%s_x86_64.' + module_end
+		# rdmodern_files = bld.path.ant_glob('src/rd-modern/*.cpp')
+		# rdmodern_files += bld.path.ant_glob('src/rd-common/*.cpp')
+		# rdmodern_files += bld.path.ant_glob('src/ghoul2/*.cpp')
+		# rdmodern_files += bld.path.ant_glob('src/qcommon/matcomp.cpp')
+		# rdmodern_files += bld.path.ant_glob('src/qcommon/q_math.cpp')
+		# rdmodern_files += bld.path.ant_glob('src/qcommon/q_shared.cpp')
+		# rdmodern_files += bld.path.ant_glob('src/rd-modern/glad.c')
+		#
+		# rdmodern = bld (
+		# 	features = 'cxx cxxshlib c cshlib',
+		# 	target = 'rd-modern',
+		# 	includes = ['src', 'src/rd-modern'],
+		# 	source = rdmodern_files,
+		# 	uselib = ['JPEG', 'PNG', 'GL', 'PTHREAD'],
+		# 	install_path = os.path.join(top, 'install')
+		# )
+		#
+		# rdmodern.env.cxxshlib_PATTERN = '%s_x86_64.' + module_end
 	
 	### C# SCRIPTING LIBRARY ###
 	if not plat_windows: # FIXME: windows users have to manually compile sharpsv due to some weird bug I don't fully understand
